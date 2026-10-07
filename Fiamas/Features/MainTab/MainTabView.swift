@@ -20,7 +20,7 @@ struct MainTabView: View {
 
             MainTabBar(selected: $tab)
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             guard !didSetInitialTab else { return }

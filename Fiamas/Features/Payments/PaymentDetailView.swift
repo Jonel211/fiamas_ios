@@ -4,11 +4,11 @@ import SwiftUI
 struct PaymentDetailView: View {
     @Environment(AppRouter.self) private var router
 
-    private let items: [(String, String)] = [
+    private let items: [(name: String, amount: String)] = [
         ("Pan", "S/ 50.00"),
         ("Arroz", "S/ 80.00"),
         ("Aceite", "S/ 90.00"),
-        ("Parangaricutirimicuaro", "S/ 50.00"),
+        ("Leche evaporada x6", "S/ 50.00"),
     ]
 
     var body: some View {
@@ -16,84 +16,97 @@ struct PaymentDetailView: View {
             FiHeader(title: "Detalle del pago", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("06 de sep 2026")
-                        .font(.poppins(16, .medium))
-                        .padding(.leading, 4)
-                        .padding(.bottom, 2)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 12) {
+                        IconTile(systemName: "checkmark.seal.fill", size: 48, isCircle: true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Pago registrado")
+                                .font(.poppins(17, .semibold))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            Text("06 de sep 2026 · 4:15 pm · Efectivo")
+                                .font(.poppins(13))
+                                .foregroundStyle(Color.fiTextSecondary)
+                        }
+                    }
+                    .fiCard()
+                    .padding(.bottom, 24)
 
-                    ForEach(items, id: \.0) { name, amount in
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(name)
-                                    .font(.poppins(12, .semibold))
-                                    .padding(.leading, 8)
-                                Text("Abono Viveres")
-                                    .font(.inter(11))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.fiGoldChip))
-                                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.fiGoldChipBorder, lineWidth: 0.6))
+                    GroupLabel(title: "Productos")
+                        .padding(.bottom, 8)
+
+                    VStack(spacing: 0) {
+                        ForEach(items, id: \.name) { item in
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(item.name)
+                                        .font(.poppins(15, .semibold))
+                                        .foregroundStyle(Color.fiTextPrimary)
+                                    StatusBadge(text: "Abono víveres", foreground: .fiWarning, background: .fiGoldSoft)
+                                }
+                                Spacer()
+                                Text(item.amount)
+                                    .font(.poppins(15, .semibold))
+                                    .foregroundStyle(Color.fiTextPrimary)
                             }
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(amount).font(.poppins(11, .semibold))
-                                Text("4.15 pm").font(.poppins(11))
-                                Text("Efectivo").font(.poppins(11))
+                            .padding(16)
+
+                            if item.name != items.last?.name {
+                                FiDivider(leadingInset: 16)
                             }
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .cardStyle(cornerRadius: 6, border: .fiCardBorder)
                     }
+                    .fiCard(padding: 0)
+                    .padding(.bottom, 24)
 
                     summary
-                        .padding(.top, 8)
                 }
-                .padding(.horizontal, 30)
-                .padding(.top, 22)
-                .padding(.bottom, 20)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
             }
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
     }
 
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Resumen de cuenta")
-                .font(.poppins(15, .semibold))
-                .foregroundStyle(Color.fiTeal)
-                .padding(.bottom, 12)
+                .font(.poppins(17, .semibold))
+                .foregroundStyle(Color.fiTealDark)
+                .padding(.bottom, 2)
 
-            summaryRow("Total Deuda Original", "S/ 270.00")
-                .padding(.bottom, 14)
-            summaryRow("Total Pagado", "S/ 270.00")
-                .padding(.bottom, 4)
-            Rectangle().fill(Color.fiNavy).frame(height: 1)
-                .padding(.bottom, 8)
+            summaryRow("Total deuda original", "S/ 270.00")
+            summaryRow("Total pagado", "S/ 270.00")
+
+            Rectangle()
+                .fill(Color.fiTeal.opacity(0.25))
+                .frame(height: 1)
+
             HStack {
-                Text("Total Deuda Actual Restante")
+                Text("Deuda restante")
+                    .font(.poppins(15, .semibold))
                 Spacer()
-                Text("S/")
-                Text("0.00").padding(.leading, 12)
+                Text("S/ 0.00")
+                    .font(.poppins(20, .bold))
+                    .foregroundStyle(Color.fiTeal)
             }
-            .font(.inter(12))
+            .foregroundStyle(Color.fiTextPrimary)
         }
-        .padding(.horizontal, 6)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color.fiSky))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fiSummaryBorder, lineWidth: 0.8))
+        .padding(18)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.fiSkySoft))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.fiSky, lineWidth: 1))
     }
 
     private func summaryRow(_ title: String, _ value: String) -> some View {
         HStack {
             Text(title)
+                .foregroundStyle(Color.fiTextSecondary)
             Spacer()
             Text(value)
+                .foregroundStyle(Color.fiTextPrimary)
         }
-        .font(.inter(12))
+        .font(.poppins(14))
     }
 }
 

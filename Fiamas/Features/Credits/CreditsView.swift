@@ -10,19 +10,20 @@ struct CreditsView: View {
         VStack(spacing: 0) {
             FiHeader(
                 title: "Mis fiados",
+                trailingBadge: true,
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
 
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     ForEach(Store.samples) { store in
                         StoreCreditsSectionView(
                             store: store,
                             credits: Credit.samples[store.name] ?? [],
                             isExpanded: expanded.contains(store.name)
                         ) {
-                            withAnimation(.easeInOut(duration: 0.25)) {
+                            withAnimation(.spring(duration: 0.3)) {
                                 if expanded.contains(store.name) {
                                     expanded.remove(store.name)
                                 } else {
@@ -32,11 +33,12 @@ struct CreditsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 30)
-                .padding(.top, 24)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
             }
         }
+        .fiScreenBackground()
     }
 }
 

@@ -1,43 +1,50 @@
 import SwiftUI
 
+/// Código de verificación de 6 dígitos.
 struct OTPField: View {
     @Binding var code: String
     var length: Int = 6
-    var boxWidth: CGFloat = 26
-    var boxHeight: CGFloat = 33
-    var spacing: CGFloat = 13
-    @FocusState private var focused: Bool
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         ZStack {
             TextField("", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
-                .focused($focused)
+                .focused($isFocused)
                 .opacity(0.01)
                 .onChange(of: code) { _, newValue in
-                    let digits = newValue.filter(\.isNumber)
-                    code = String(digits.prefix(length))
+                    let digits = String(newValue.filter(\.isNumber).prefix(length))
+                    if digits != newValue { code = digits }
                 }
 
-            HStack(spacing: spacing) {
+            HStack(spacing: 10) {
                 ForEach(0..<length, id: \.self) { index in
                     let chars = Array(code)
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(index == chars.count && focused ? Color.fiTeal : Color.fiFieldBorder, lineWidth: 1)
+                    let isCurrent = isFocused && index == min(chars.count, length - 1)
+                    let isFilled = index < chars.count
+
+                    Text(isFilled ? String(chars[index]) : "")
+                        .font(.poppins(22, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(isFilled ? Color.fiTealSoft : .white)
                         )
                         .overlay(
-                            Text(index < chars.count ? String(chars[index]) : "")
-                                .font(.inter(17, .semibold))
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(isCurrent ? Color.fiTeal : Color.fiBorder, lineWidth: isCurrent ? 1.5 : 1)
                         )
-                        .frame(width: boxWidth, height: boxHeight)
                 }
             }
             .contentShape(Rectangle())
-            .onTapGesture { focused = true }
+            .onTapGesture { isFocused = true }
         }
+        .onAppear { isFocused = true }
+        .accessibilityElement()
+        .accessibilityLabel("Código de verificación")
+        .accessibilityValue(code)
     }
 }

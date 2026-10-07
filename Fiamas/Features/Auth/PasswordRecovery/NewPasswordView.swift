@@ -6,28 +6,32 @@ struct NewPasswordView: View {
     @State private var password = ""
     @State private var confirm = ""
 
+    private var isValid: Bool { password.count >= 6 && password == confirm }
+
     var body: some View {
-        PasswordRecoveryLayout(step: 3) {
-            Text("¡Actualiza tu contraseña!")
-                .font(.inter(16, .bold))
-                .padding(.bottom, 12)
-            Text("Nueva contraseña")
-                .font(.inter(13))
-                .padding(.bottom, 10)
-            FiTextField(text: $password, isSecure: true, height: 32)
+        AuthLayout(topHeight: 190, onBack: { router.pop() }) {
+            StepIndicator(current: 3)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 28)
 
-            Text("Confirmar nueva contraseña")
-                .font(.inter(13))
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-            FiTextField(text: $confirm, isSecure: true, height: 32)
+            AuthTitle(title: "¡Actualiza tu contraseña!", subtitle: "Elige una contraseña que no hayas usado antes.")
+                .padding(.bottom, 24)
 
-            FiButton(title: "Actualizar contraseña", color: .fiTealBright, height: 32) {
+            VStack(spacing: 16) {
+                FiTextField(label: "Nueva contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
+                            icon: "lock", isSecure: true, contentType: .newPassword)
+                FiTextField(label: "Confirmar nueva contraseña", text: $confirm, placeholder: "Repite tu contraseña",
+                            icon: "lock", isSecure: true, contentType: .newPassword)
+            }
+
+            FiButton(title: "Actualizar contraseña", isEnabled: isValid) {
                 router.authPath = [.login]
             }
-            .padding(.top, 14)
+            .padding(.top, 28)
         }
     }
 }
 
-#Preview("Paso 3") { NavigationStack { NewPasswordView() }.environment(AppRouter()) }
+#Preview {
+    NavigationStack { NewPasswordView() }.environment(AppRouter())
+}

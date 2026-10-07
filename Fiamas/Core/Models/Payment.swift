@@ -5,7 +5,7 @@ struct Payment: Identifiable {
     let store: String
     var concept = "Abono Víveres"
     var amount = "S/ 50.00"
-    var time = "4.15 pm"
+    var time = "4:15 pm"
     var method = "Efectivo"
 }
 
@@ -13,5 +13,7 @@ struct Payment: Identifiable {
 struct PaymentGroup: Identifiable {
     let id = UUID()
     let title: String
+    /// Mes al que pertenece (ej. "septiembre 2026")
+    var month: String
     let payments: [Payment]
 }

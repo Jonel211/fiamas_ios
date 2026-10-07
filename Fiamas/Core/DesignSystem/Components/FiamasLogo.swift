@@ -10,14 +10,14 @@ struct FiamasLogo: View {
         case .iconOnly:
             icon
         case .horizontal:
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 icon
-                wordmark(size: iconHeight * 0.45)
+                wordmark(size: iconHeight * 0.5)
             }
         case .vertical:
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 icon
-                wordmark(size: iconHeight * 0.42)
+                wordmark(size: iconHeight * 0.4)
             }
         }
     }
@@ -27,12 +27,13 @@ struct FiamasLogo: View {
             .resizable()
             .scaledToFit()
             .frame(height: iconHeight)
+            .accessibilityHidden(true)
     }
 
     private func wordmark(size: CGFloat) -> some View {
         Text("FIAMAS")
-            .font(.system(size: size, weight: .bold))
-            .tracking(1)
+            .font(.poppins(size, .bold))
+            .tracking(1.5)
             .foregroundStyle(Color.fiNavy)
     }
 }

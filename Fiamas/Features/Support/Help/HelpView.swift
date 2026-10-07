@@ -5,28 +5,29 @@ struct HelpView: View {
     @Environment(AppRouter.self) private var router
     @State private var openFAQ: Set<UUID> = []
 
+    private let faqs = FAQ.samples
+
     var body: some View {
         VStack(spacing: 0) {
-            FiHeader(title: "Ayuda", leading: .back, trailingIcon: nil, color: .fiTealBright, onLeading: { router.pop() })
+            FiHeader(title: "Ayuda", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("¿Como podemos ayudarte hoy?")
-                        .font(.poppins(17))
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 24)
-
-                    contactCard
-                        .padding(.bottom, 24)
-
-                    Text("Preguntas Frecuentes")
-                        .font(.poppins(15, .semibold))
+                    Text("¿Cómo podemos ayudarte hoy?")
+                        .font(.poppins(22, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
                         .padding(.bottom, 16)
 
-                    VStack(spacing: 22) {
-                        ForEach(FAQ.samples) { faq in
+                    contactCard
+                        .padding(.bottom, 28)
+
+                    SectionHeader(title: "Preguntas frecuentes")
+                        .padding(.bottom, 12)
+
+                    VStack(spacing: 0) {
+                        ForEach(faqs) { faq in
                             FAQRowView(faq: faq, isOpen: openFAQ.contains(faq.id)) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
+                                withAnimation(.spring(duration: 0.3)) {
                                     if openFAQ.contains(faq.id) {
                                         openFAQ.remove(faq.id)
                                     } else {
@@ -34,49 +35,54 @@ struct HelpView: View {
                                     }
                                 }
                             }
+                            if faq.id != faqs.last?.id {
+                                FiDivider(leadingInset: 16)
+                            }
                         }
                     }
+                    .fiCard(padding: 0)
                 }
-                .padding(.horizontal, 30)
-                .padding(.top, 26)
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
                 .padding(.bottom, 24)
             }
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
     }
 
     private var contactCard: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("¿Tienes alguna duda?")
-                .font(.poppins(15, .bold))
-            Text("Estamos aqui para apoyarte con tu tienda")
-                .font(.poppins(13))
-                .lineSpacing(3)
-                .padding(.bottom, 12)
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("¿Tienes alguna duda?")
+                    .font(.poppins(18, .semibold))
+                Text("Estamos aquí para apoyarte con tu tienda.")
+                    .font(.poppins(14))
+                    .opacity(0.9)
+                    .padding(.bottom, 12)
 
-            Button {
-                router.push(.complaints)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "message")
-                        .font(.system(size: 13, weight: .medium))
-                    Text("Escribenos")
-                        .font(.poppins(14))
+                Button { router.push(.complaints) } label: {
+                    Label("Escríbenos", systemImage: "bubble.left.fill")
+                        .font(.poppins(14, .semibold))
+                        .foregroundStyle(Color.fiTealDark)
+                        .padding(.horizontal, 16)
+                        .frame(height: 40)
+                        .background(Capsule().fill(.white))
                 }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 10)
-                .frame(height: 34)
-                .background(RoundedRectangle(cornerRadius: 4).fill(.white))
+                .buttonStyle(PressableButtonStyle())
             }
-            .buttonStyle(.plain)
+            Spacer(minLength: 0)
+            Image(systemName: "questionmark.bubble.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(.white.opacity(0.25))
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.fiTealBright))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fiCardOutline, lineWidth: 0.8))
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: Color.fiTealDark.opacity(0.25), radius: 12, y: 6)
+        )
     }
 }
 

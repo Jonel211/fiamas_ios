@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Tarjeta desplegable de una tienda con sus fiados.
 struct StoreCreditsSectionView: View {
     let store: Store
     let credits: [Credit]
@@ -7,45 +8,53 @@ struct StoreCreditsSectionView: View {
     let toggle: () -> Void
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(spacing: 4) {
-                    Text(store.name)
-                        .font(.inter(16, .semibold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    if isExpanded {
-                        CreditProgressView(used: store.used, limit: store.limit, width: 125, compact: true)
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: toggle) {
+                HStack(spacing: 12) {
+                    IconTile(systemName: "storefront", size: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.name)
+                            .font(.poppins(16, .semibold))
+                            .foregroundStyle(Color.fiTextPrimary)
+                        Text(credits.isEmpty ? "Sin fiados" : "\(credits.count) \(credits.count == 1 ? "fiado" : "fiados")")
+                            .font(.poppins(13))
+                            .foregroundStyle(Color.fiTextSecondary)
                     }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.fiTeal)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(Color.fiTealSoft))
                 }
-                Button(action: toggle) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: isExpanded ? 18 : 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: isExpanded ? 38 : 30, height: isExpanded ? 28 : 26)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.fiTeal))
-                }
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 8)
-            .padding(.bottom, isExpanded ? 0 : 8)
+            .buttonStyle(.plain)
+            .accessibilityHint(isExpanded ? "Ocultar fiados" : "Mostrar fiados")
 
             if isExpanded {
-                VStack(spacing: 10) {
-                    if credits.isEmpty {
-                        Text("No tienes fiados en esta tienda")
-                            .font(.inter(11))
-                            .foregroundStyle(Color.fiGrayText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                CreditUsageBar(used: store.used, limit: store.limit)
+                    .padding(.top, 16)
+
+                if credits.isEmpty {
+                    Text("No tienes fiados en esta tienda")
+                        .font(.poppins(14))
+                        .foregroundStyle(Color.fiTextSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+                        .padding(.bottom, 4)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(credits) { credit in
+                            FiDivider()
+                            CreditCardView(credit: credit)
+                        }
                     }
-                    ForEach(credits) { credit in
-                        CreditCardView(credit: credit)
-                    }
+                    .padding(.top, 14)
                 }
-                .padding(.horizontal, 6)
-                .padding(.bottom, 8)
             }
         }
-        .cardStyle(cornerRadius: 6, border: .fiCardBorder, fill: .fiSectionBackground)
+        .fiCard()
     }
 }

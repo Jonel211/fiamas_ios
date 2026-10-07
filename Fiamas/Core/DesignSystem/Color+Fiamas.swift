@@ -11,54 +11,37 @@ extension Color {
         )
     }
 
+    // MARK: Marca (tomados de los diseños de Figma)
+
     /// Azul marino del logo FIAMAS
     static let fiNavy = Color(hex: 0x263650)
-    /// Celeste de fondo (registro, login, resumen de cuenta)
-    static let fiSky = Color(hex: 0xBAD7F0)
-    /// Celeste de las pantallas de recuperar contraseña
-    static let fiSkyLight = Color(hex: 0xB0D6F5)
-    /// Verde azulado principal (barras, botones)
+    /// Verde azulado principal: barras, botones y acentos
     static let fiTeal = Color(hex: 0x47908F)
-    /// Verde azulado intenso (botones del flujo de recuperar contraseña)
-    static let fiTealBright = Color(hex: 0x1A9090)
-    /// Verde azulado oscuro (score, avatar)
+    /// Verde azulado oscuro: degradados y avatar
     static let fiTealDark = Color(hex: 0x2B6665)
-    /// Dorado (Registrarme, Cerrar sesión, pasos)
+    /// Fondo suave para íconos y etiquetas verdes
+    static let fiTealSoft = Color(hex: 0xE8F2F1)
+    /// Dorado: acción principal (Registrarme, Guardar, Cerrar sesión)
     static let fiGold = Color(hex: 0xD7AA4E)
-    /// Dorado desactivado (Guardar)
-    static let fiGoldLight = Color(hex: 0xEBD3A3)
-    /// Dorado de las etiquetas "Abono Viveres"
-    static let fiGoldChip = Color(hex: 0xE3C27E)
+    static let fiGoldSoft = Color(hex: 0xFBF3E3)
+    /// Celeste de las pantallas de acceso
+    static let fiSky = Color(hex: 0xBAD7F0)
+    static let fiSkySoft = Color(hex: 0xEAF3FB)
 
-    static let fiFieldBorder = Color(hex: 0xC4C4C4)
-    static let fiCardBorder = Color(hex: 0xCFE1F1)
-    static let fiGrayText = Color(hex: 0x6B7280)
-    static let fiLightGrayText = Color(hex: 0x9CA3AF)
-    static let fiVerifyBackground = Color(hex: 0xF4F9F9)
-    static let fiSectionBackground = Color(hex: 0xF1F8F9)
-    static let fiProfileBackground = Color(hex: 0xF8F4FA)
-    static let fiTotalBox = Color(hex: 0xD9D9D9)
+    // MARK: Neutros
 
-    static let fiRed = Color(hex: 0xC0392B)
-    static let fiRedSoft = Color(hex: 0xFADADD)
-    static let fiOrange = Color(hex: 0xE07B00)
-    static let fiOrangeSoft = Color(hex: 0xFDEFD3)
-    static let fiGreenSoft = Color(hex: 0xE3F0EC)
-    static let fiLogoutRed = Color(hex: 0xE5484D)
-
-    // Textos
+    /// Fondo de las pantallas con tarjetas
+    static let fiCanvas = Color(hex: 0xF4F6F8)
+    static let fiBorder = Color(hex: 0xDDE3E8)
+    static let fiDivider = Color(hex: 0xEEF1F4)
     static let fiTextPrimary = Color(hex: 0x1F2937)
-    static let fiTextBody = Color(hex: 0x374151)
-    static let fiTextSecondary = Color(hex: 0x4B5563)
+    static let fiTextSecondary = Color(hex: 0x6B7280)
+    static let fiTextTertiary = Color(hex: 0x9CA3AF)
 
-    // Bordes y separadores
-    /// Borde verde grisáceo de Ayuda y Reclamos
-    static let fiOutline = Color(hex: 0x5E8C86)
-    static let fiCardOutline = Color(hex: 0x8A9A98)
-    static let fiSummaryBorder = Color(hex: 0x5D7A99)
-    static let fiGoldChipBorder = Color(hex: 0xB8954A)
-    static let fiNeutralBorder = Color(hex: 0xE5E7EB)
-    static let fiDivider = Color(hex: 0xEBEBEB)
-    static let fiChevron = Color(hex: 0xBDBDBD)
-    static let fiIconBackground = Color(hex: 0xE3EEF7)
+    // MARK: Estados
+
+    static let fiDanger = Color(hex: 0xC0392B)
+    static let fiDangerSoft = Color(hex: 0xFCE8E6)
+    static let fiWarning = Color(hex: 0xB86E00)
+    static let fiWarningSoft = Color(hex: 0xFDF1DC)
 }

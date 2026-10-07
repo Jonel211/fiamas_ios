@@ -3,69 +3,76 @@ import SwiftUI
 /// iOS-menu
 struct MenuView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(ProfileStore.self) private var profileStore
+    @State private var isConfirmingLogout = false
 
     private let shareMessage = "Revisa tus fiados y pagos con Fiamas."
 
     var body: some View {
         VStack(spacing: 0) {
-            FiHeader(title: "Menu", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
+            FiHeader(title: "Menú", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
 
-            VStack(spacing: 0) {
-                Button {
-                    router.push(.help)
-                } label: {
-                    MenuRowView(icon: "questionmark.circle", title: "Centro de ayuda")
-                }
-                divider
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 14) {
+                        ProfileAvatarView(photo: profileStore.photo, initials: profileStore.profile.initials,
+                                          size: 56, showsCameraBadge: false)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(profileStore.profile.fullName)
+                                .font(.poppins(17, .semibold))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            Text(profileStore.profile.phone)
+                                .font(.poppins(13))
+                                .foregroundStyle(Color.fiTextSecondary)
+                        }
+                    }
+                    .fiCard()
+                    .padding(.bottom, 24)
 
-                Button {
-                    router.push(.complaints)
-                } label: {
-                    MenuRowView(icon: "exclamationmark.bubble", title: "Atención de reclamos")
-                }
-                divider
+                    GroupLabel(title: "Soporte")
+                        .padding(.bottom, 8)
 
-                ShareLink(item: shareMessage) {
-                    MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
+                    VStack(spacing: 0) {
+                        Button { router.push(.help) } label: {
+                            MenuRowView(icon: "questionmark.circle", title: "Centro de ayuda")
+                        }
+                        FiDivider(leadingInset: 64)
+                        Button { router.push(.complaints) } label: {
+                            MenuRowView(icon: "exclamationmark.bubble", title: "Atención de reclamos")
+                        }
+                        FiDivider(leadingInset: 64)
+                        ShareLink(item: shareMessage) {
+                            MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .fiCard(padding: 0)
                 }
-                divider
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
 
-            Spacer()
-
-            Button {
-                router.logout()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Cerrar sesión")
-                        .font(.poppins(15, .semibold))
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.fiGold))
+            FiButton(title: "Cerrar sesión", style: .accent, icon: "rectangle.portrait.and.arrow.right") {
+                isConfirmingLogout = true
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+
+            Text("Fiamas · versión 1.0")
+                .font(.poppins(12))
+                .foregroundStyle(Color.fiTextTertiary)
+                .padding(.bottom, 12)
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.fiDivider)
-            .frame(height: 1)
-            .padding(.leading, 36)
+        .confirmationDialog("¿Quieres cerrar sesión?", isPresented: $isConfirmingLogout, titleVisibility: .visible) {
+            Button("Cerrar sesión", role: .destructive) { router.logout() }
+        }
     }
 }
 
 #Preview {
-    MenuView().environment(AppRouter())
+    MenuView()
+        .environment(AppRouter())
+        .environment(ProfileStore())
 }

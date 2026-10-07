@@ -1,11 +1,10 @@
+import CoreText
 import SwiftUI
-import UIKit
 
-// Los diseños usan Poppins e Inter. Si agregas los .ttf de Poppins al proyecto
-// (y los registras en Info.plist -> "Fonts provided by application"), se usarán
-// automáticamente; si no, se usa la fuente del sistema con el mismo peso.
 extension Font {
+    /// Poppins (la tipografía de los diseños), incluida en Resources/Fonts.
     static func poppins(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        FontRegistrar.registerIfNeeded()
         let name: String
         switch weight {
         case .bold, .heavy, .black: name = "Poppins-Bold"
@@ -13,13 +12,20 @@ extension Font {
         case .medium: name = "Poppins-Medium"
         default: name = "Poppins-Regular"
         }
-        if UIFont(name: name, size: size) != nil {
-            return .custom(name, size: size)
-        }
-        return .system(size: size, weight: weight)
+        return .custom(name, fixedSize: size)
     }
+}
 
-    static func inter(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight)
+/// Registra las fuentes incluidas en la app (no hace falta declararlas en Info.plist).
+enum FontRegistrar {
+    private static let registered: Void = {
+        let urls = Bundle.main.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
+        for url in urls {
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        }
+    }()
+
+    static func registerIfNeeded() {
+        _ = registered
     }
 }

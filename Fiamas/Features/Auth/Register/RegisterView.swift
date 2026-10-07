@@ -8,81 +8,48 @@ struct RegisterView: View {
     @State private var password = ""
     @State private var confirmPassword = ""
 
-    var body: some View {
-        ZStack(alignment: .top) {
-            Color.white.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                FiamasLogo(layout: .horizontal, iconHeight: 44)
-                    .frame(height: 150)
-                    .padding(.top, 10)
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack {
-                            Text("Crear tu cuenta")
-                                .font(.poppins(18, .bold))
-                            Spacer()
-                            Image(systemName: "doc.viewfinder")
-                                .font(.system(size: 22))
-                        }
-                        .padding(.bottom, 8)
-
-                        Text("Empieza a ver tus notas de\ncredito")
-                            .font(.poppins(15))
-                            .padding(.bottom, 2)
-
-                        label("Número de celular")
-                        FiTextField(text: $phone, keyboard: .phonePad)
-
-                        label("Nombres completos")
-                        FiTextField(text: $fullName, trailingIcon: "lock.shield")
-
-                        label("Crear una contraseña")
-                        FiTextField(text: $password, isSecure: true)
-
-                        label("Confirmar contraseña")
-                        FiTextField(text: $confirmPassword, isSecure: true)
-
-                        FiButton(title: "Registrarme", color: .fiGold, font: .poppins(14, .medium)) {
-                            router.push(.phoneVerification)
-                        }
-                        .padding(.top, 18)
-
-                        HStack(spacing: 6) {
-                            Text("¿Ya tienes una cuenta?")
-                                .font(.poppins(11))
-                            Button {
-                                router.push(.login)
-                            } label: {
-                                Text("Inicia sesión")
-                                    .font(.poppins(11, .semibold))
-                                    .foregroundStyle(.black)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 16)
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 28)
-                    .padding(.bottom, 30)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .background(
-                    TopRoundedSheet(radius: 28)
-                        .fill(Color.fiSky)
-                        .ignoresSafeArea(edges: .bottom)
-                )
-            }
-        }
-        .toolbar(.hidden, for: .navigationBar)
+    private var passwordsMismatch: Bool {
+        !confirmPassword.isEmpty && password != confirmPassword
     }
 
-    private func label(_ text: String) -> some View {
-        Text(text)
-            .font(.poppins(14, .medium))
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+    private var canSubmit: Bool {
+        phone.filter(\.isNumber).count >= 9 && !fullName.trimmingCharacters(in: .whitespaces).isEmpty
+            && password.count >= 6 && password == confirmPassword
+    }
+
+    var body: some View {
+        AuthLayout(topColor: .white, sheetColor: .fiSky, logoLayout: .horizontal, topHeight: 150) {
+            AuthTitle(title: "Crear tu cuenta", subtitle: "Empieza a ver tus notas de crédito")
+                .padding(.bottom, 24)
+
+            VStack(spacing: 16) {
+                FiTextField(label: "Número de celular", text: $phone, placeholder: "9xx xxx xxx",
+                            icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
+                FiTextField(label: "Nombres completos", text: $fullName, placeholder: "Ej. Martha Gómez",
+                            icon: "person", contentType: .name, capitalization: .words)
+                FiTextField(label: "Crear una contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
+                            icon: "lock", isSecure: true, contentType: .newPassword)
+                VStack(alignment: .leading, spacing: 6) {
+                    FiTextField(label: "Confirmar contraseña", text: $confirmPassword, placeholder: "Repite tu contraseña",
+                                icon: "lock", isSecure: true, contentType: .newPassword)
+                    if passwordsMismatch {
+                        Label("Las contraseñas no coinciden", systemImage: "exclamationmark.circle")
+                            .font(.poppins(12))
+                            .foregroundStyle(Color.fiDanger)
+                    }
+                }
+            }
+
+            FiButton(title: "Registrarme", style: .accent, isEnabled: canSubmit) {
+                router.push(.phoneVerification)
+            }
+            .padding(.top, 28)
+
+            AuthFooterLink(prompt: "¿Ya tienes una cuenta?", link: "Inicia sesión") {
+                router.push(.login)
+            }
+            .padding(.top, 20)
+        }
     }
 }
 

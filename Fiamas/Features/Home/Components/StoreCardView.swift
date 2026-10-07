@@ -4,24 +4,25 @@ struct StoreCardView: View {
     let store: Store
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(store.name)
-                .font(.inter(16, .semibold))
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                IconTile(systemName: "storefront", size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(store.name)
+                        .font(.poppins(16, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
                     Text(store.description)
-                        .font(.inter(11))
-                        .foregroundStyle(Color.fiGrayText)
-                    Text(store.date)
-                        .font(.inter(10))
-                        .foregroundStyle(Color.fiLightGrayText)
+                        .font(.poppins(13))
+                        .foregroundStyle(Color.fiTextSecondary)
                 }
-                Spacer()
-                CreditProgressView(used: store.used, limit: store.limit)
+                Spacer(minLength: 0)
+                Text(store.date)
+                    .font(.poppins(12))
+                    .foregroundStyle(Color.fiTextTertiary)
             }
+
+            CreditUsageBar(used: store.used, limit: store.limit)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .cardStyle(cornerRadius: 10, border: Color.fiNeutralBorder, shadow: true)
+        .fiCard()
     }
 }

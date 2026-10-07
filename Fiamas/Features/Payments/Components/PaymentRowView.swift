@@ -4,24 +4,35 @@ struct PaymentRowView: View {
     let payment: Payment
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 10) {
+        HStack(spacing: 12) {
+            IconTile(systemName: "banknote", size: 40, isCircle: true)
+
+            VStack(alignment: .leading, spacing: 2) {
                 Text(payment.store)
-                    .font(.poppins(13, .semibold))
+                    .font(.poppins(15, .semibold))
+                    .foregroundStyle(Color.fiTextPrimary)
                 Text(payment.concept)
-                    .font(.poppins(11))
-                    .padding(.leading, 16)
+                    .font(.poppins(13))
+                    .foregroundStyle(Color.fiTextSecondary)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 0) {
-                Text(payment.amount).font(.poppins(11, .semibold))
-                Text(payment.time).font(.poppins(11)).padding(.top, 2)
-                Text(payment.method).font(.poppins(11))
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(payment.amount)
+                    .font(.poppins(15, .semibold))
+                    .foregroundStyle(Color.fiTeal)
+                Text("\(payment.time) · \(payment.method)")
+                    .font(.poppins(12))
+                    .foregroundStyle(Color.fiTextTertiary)
             }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.fiTextTertiary)
         }
-        .foregroundStyle(.black)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .cardStyle(cornerRadius: 6, border: .fiCardBorder)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }

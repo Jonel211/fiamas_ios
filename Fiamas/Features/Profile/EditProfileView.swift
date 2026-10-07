@@ -34,66 +34,63 @@ struct EditProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Button { isChoosingPhoto = true } label: {
-                        VStack(spacing: 10) {
-                            ProfileAvatarView(photo: photo, initials: draftProfile.initials, size: 96)
+                        VStack(spacing: 12) {
+                            ProfileAvatarView(photo: photo, initials: draftProfile.initials, size: 104)
                             Text(photo == nil ? "Agregar foto" : "Cambiar foto")
-                                .font(.poppins(13, .medium))
+                                .font(.poppins(15, .semibold))
                                 .foregroundStyle(Color.fiTeal)
                         }
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 28)
 
-                    label("Nombres")
-                    FiTextField(text: $firstName, placeholder: "Tus nombres", height: 40, cornerRadius: 8)
-                        .textContentType(.givenName)
+                    VStack(spacing: 16) {
+                        FiTextField(label: "Nombres", text: $firstName, placeholder: "Tus nombres",
+                                    icon: "person", contentType: .givenName, capitalization: .words)
+                        FiTextField(label: "Apellidos", text: $lastName, placeholder: "Tus apellidos",
+                                    icon: "person.text.rectangle", contentType: .familyName, capitalization: .words)
 
-                    label("Apellidos")
-                    FiTextField(text: $lastName, placeholder: "Tus apellidos", height: 40, cornerRadius: 8)
-                        .textContentType(.familyName)
-
-                    label("Teléfono")
-                    HStack {
-                        Text(store.profile.phone)
-                            .font(.inter(15))
-                            .foregroundStyle(Color.fiGrayText)
-                        Spacer()
-                        Image(systemName: "lock")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.fiLightGrayText)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Teléfono")
+                                .font(.poppins(14, .medium))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            HStack(spacing: 10) {
+                                Image(systemName: "phone")
+                                    .font(.system(size: 16))
+                                    .frame(width: 20)
+                                Text(store.profile.phone)
+                                    .font(.poppins(15))
+                                Spacer()
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 13))
+                            }
+                            .foregroundStyle(Color.fiTextTertiary)
+                            .padding(.horizontal, 14)
+                            .frame(height: 50)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.fiDivider))
+                            Text("Tu número está verificado y no se puede cambiar desde aquí.")
+                                .font(.poppins(12))
+                                .foregroundStyle(Color.fiTextTertiary)
+                        }
                     }
-                    .padding(.horizontal, 10)
-                    .frame(height: 40)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.fiVerifyBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fiNeutralBorder, lineWidth: 1))
-                    Text("Tu número está verificado y no se puede cambiar desde aquí.")
-                        .font(.inter(11))
-                        .foregroundStyle(Color.fiLightGrayText)
-                        .padding(.top, 6)
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.white)
+                            .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+                    )
 
-                    Button(action: save) {
-                        Text("Guardar cambios")
-                            .font(.poppins(15, .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(isValid && hasChanges ? Color.fiGold : Color.fiGoldLight)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!(isValid && hasChanges))
-                    .padding(.top, 32)
+                    FiButton(title: "Guardar cambios", style: .accent, isEnabled: isValid && hasChanges, action: save)
+                        .padding(.top, 28)
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 20)
                 .padding(.top, 28)
                 .padding(.bottom, 24)
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .photoSourcePicker(
             isPresented: $isChoosingPhoto,
@@ -114,13 +111,6 @@ struct EditProfileView: View {
             lastName = store.profile.lastName
             photo = store.photo
         }
-    }
-
-    private func label(_ text: String) -> some View {
-        Text(text)
-            .font(.poppins(14, .medium))
-            .padding(.top, 14)
-            .padding(.bottom, 8)
     }
 
     private func save() {

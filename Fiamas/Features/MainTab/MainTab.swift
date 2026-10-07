@@ -1,4 +1,4 @@
-import SwiftUI
+import Foundation
 
 enum MainTab: CaseIterable {
     case home, credits, payments, profile
@@ -15,9 +15,11 @@ enum MainTab: CaseIterable {
     var icon: String {
         switch self {
         case .home: "house"
-        case .credits: "list.bullet"
+        case .credits: "list.bullet.rectangle"
         case .payments: "wallet.bifold"
         case .profile: "person"
         }
     }
+
+    var selectedIcon: String { icon + ".fill" }
 }

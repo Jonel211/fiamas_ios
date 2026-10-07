@@ -4,60 +4,89 @@ import SwiftUI
 struct PhoneVerificationView: View {
     @Environment(AppRouter.self) private var router
     @State private var code = ""
+    @State private var secondsLeft = 30
 
     var body: some View {
-        ZStack {
-            Color.fiVerifyBackground.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                HStack {
-                    Button { router.pop() } label: {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.black)
-                    }
-                    Spacer()
+        VStack(spacing: 0) {
+            HStack {
+                Button { router.pop() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                        .frame(width: 42, height: 42)
+                        .background(Circle().fill(.white))
+                        .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
                 }
-                .padding(.top, 50)
-
-                Text("Verifica tu número")
-                    .font(.poppins(19, .bold))
-                    .padding(.top, 48)
-
-                Text("Te envíamos un codigo al\n+51 9xx xxx xxx")
-                    .font(.poppins(11))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 10)
-
-                OTPField(code: $code, boxWidth: 26, boxHeight: 33, spacing: 13)
-                    .padding(.top, 26)
-
-                Text("¿No recibiste el codigo?")
-                    .font(.poppins(12))
-                    .padding(.top, 52)
-
-                Button {
-                    code = ""
-                } label: {
-                    Text("Reenviar Ahora")
-                        .font(.poppins(11, .bold))
-                        .foregroundStyle(Color.fiTeal)
-                }
-                .padding(.top, 10)
-
-                FiButton(title: "Verificar", color: .fiTeal) {
-                    router.enterApp()
-                }
-                .padding(.top, 80)
-
+                .buttonStyle(.plain)
+                .accessibilityLabel("Atrás")
                 Spacer()
             }
-            .padding(.horizontal, 40)
+            .padding(.top, 8)
+
+            IconTile(systemName: "message.badge", size: 72, isCircle: true)
+                .padding(.top, 28)
+
+            Text("Verifica tu número")
+                .font(.poppins(26, .bold))
+                .foregroundStyle(Color.fiTextPrimary)
+                .padding(.top, 20)
+
+            (Text("Te enviamos un código de 6 dígitos al\n")
+             + Text("+51 9xx xxx xxx").font(.poppins(15, .semibold)).foregroundColor(.fiTextPrimary))
+                .font(.poppins(15))
+                .foregroundStyle(Color.fiTextSecondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .padding(.top, 8)
+
+            OTPField(code: $code)
+                .padding(.top, 32)
+
+            resend
+                .padding(.top, 28)
+
+            Spacer()
+
+            FiButton(title: "Verificar", isEnabled: code.count == 6) {
+                router.enterApp()
+            }
+            .padding(.bottom, 16)
         }
+        .padding(.horizontal, 24)
+        .background(Color.fiCanvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task(id: secondsLeft) {
+            guard secondsLeft > 0 else { return }
+            try? await Task.sleep(for: .seconds(1))
+            secondsLeft -= 1
+        }
+    }
+
+    @ViewBuilder
+    private var resend: some View {
+        VStack(spacing: 6) {
+            Text("¿No recibiste el código?")
+                .font(.poppins(14))
+                .foregroundStyle(Color.fiTextSecondary)
+            if secondsLeft > 0 {
+                Text("Reenviar en 0:\(String(format: "%02d", secondsLeft))")
+                    .font(.poppins(14, .medium))
+                    .foregroundStyle(Color.fiTextTertiary)
+                    .monospacedDigit()
+            } else {
+                Button {
+                    code = ""
+                    secondsLeft = 30
+                } label: {
+                    Text("Reenviar ahora")
+                        .font(.poppins(14, .semibold))
+                        .foregroundStyle(Color.fiTeal)
+                }
+            }
+        }
     }
 }
 
 #Preview {
-    PhoneVerificationView().environment(AppRouter())
+    NavigationStack { PhoneVerificationView() }.environment(AppRouter())
 }

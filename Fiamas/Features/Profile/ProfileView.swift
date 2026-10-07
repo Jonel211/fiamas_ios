@@ -18,52 +18,55 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     profileCard
-                        .padding(.bottom, 18)
+                        .padding(.bottom, 28)
 
-                    sectionTitle("INFORMACIÓN PERSONAL")
+                    GroupLabel(title: "Información personal")
+                        .padding(.bottom, 8)
                     VStack(spacing: 0) {
-                        row(icon: "person", title: "Nombres", value: store.profile.firstName)
-                        Divider().padding(.horizontal, 12)
-                        row(icon: "person.text.rectangle", title: "Apellidos", value: store.profile.lastName)
+                        row(icon: "person", title: "Nombres", value: store.profile.firstName) {
+                            router.push(.editProfile)
+                        }
+                        FiDivider(leadingInset: 64)
+                        row(icon: "person.text.rectangle", title: "Apellidos", value: store.profile.lastName) {
+                            router.push(.editProfile)
+                        }
                     }
-                    .background(RoundedRectangle(cornerRadius: 8).fill(.white))
-                    .padding(.bottom, 14)
+                    .fiCard(padding: 0)
+                    .padding(.bottom, 24)
 
-                    sectionTitle("CONTACTO")
-                    HStack(spacing: 10) {
-                        iconBox("phone")
+                    GroupLabel(title: "Contacto")
+                        .padding(.bottom, 8)
+                    HStack(spacing: 14) {
+                        IconTile(systemName: "phone", size: 36)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("Teléfono").font(.inter(9)).foregroundStyle(Color.fiGrayText)
-                            Text(store.profile.phone).font(.inter(12, .medium))
+                            Text("Teléfono")
+                                .font(.poppins(12))
+                                .foregroundStyle(Color.fiTextSecondary)
+                            Text(store.profile.phone)
+                                .font(.poppins(15, .medium))
+                                .foregroundStyle(Color.fiTextPrimary)
                         }
                         Spacer()
-                        StatusBadge(text: "Verificado", foreground: .fiTeal, background: .fiGreenSoft, font: .inter(9, .medium))
+                        StatusBadge(text: "Verificado", icon: "checkmark")
                     }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(.white))
-                    .padding(.bottom, 14)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .fiCard(padding: 0)
+                    .padding(.bottom, 24)
 
-                    sectionTitle("SEGURIDAD")
-                    Button { router.push(.changePassword) } label: {
-                        HStack(spacing: 10) {
-                            iconBox("lock")
-                            Text("Cambiar contraseña").font(.inter(12, .medium))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Color.fiLightGrayText)
-                        }
-                        .foregroundStyle(.black)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(.white))
+                    GroupLabel(title: "Seguridad")
+                        .padding(.bottom, 8)
+                    row(icon: "lock", title: "Cambiar contraseña", value: nil) {
+                        router.push(.changePassword)
                     }
-                    .buttonStyle(.plain)
+                    .fiCard(padding: 0)
                 }
-                .padding(.horizontal, 22)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
             }
-            .background(Color.fiProfileBackground)
         }
+        .fiScreenBackground()
         .photoSourcePicker(
             isPresented: $isChoosingPhoto,
             canRemove: store.photo != nil,
@@ -73,81 +76,59 @@ struct ProfileView: View {
     }
 
     private var profileCard: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             Button { isChoosingPhoto = true } label: {
-                ProfileAvatarView(photo: store.photo, initials: store.profile.initials)
+                ProfileAvatarView(photo: store.photo, initials: store.profile.initials, size: 92)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Cambiar foto de perfil")
             .padding(.bottom, 10)
 
             Text(store.profile.fullName)
-                .font(.inter(18, .semibold))
+                .font(.poppins(21, .semibold))
+                .foregroundStyle(Color.fiTextPrimary)
             Text(store.profile.phone)
-                .font(.inter(11))
-                .foregroundStyle(Color.fiGrayText)
+                .font(.poppins(14))
+                .foregroundStyle(Color.fiTextSecondary)
 
             HStack(spacing: 8) {
-                chip(icon: "checkmark.circle", text: "Teléfono verificado")
-                chip(icon: "hand.thumbsup", text: "Pagador bueno")
+                StatusBadge(text: "Teléfono verificado", icon: "checkmark.seal.fill")
+                StatusBadge(text: "Pagador bueno", icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
             }
-            .padding(.top, 10)
+            .padding(.top, 12)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
+        .padding(.vertical, 24)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 10).fill(.white)
-                Circle().fill(Color.fiGreenSoft.opacity(0.6)).frame(width: 90)
-                    .offset(x: 120, y: -40)
-                Circle().fill(Color.fiGreenSoft.opacity(0.6)).frame(width: 60)
-                    .offset(x: -140, y: 50)
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 20).fill(.white)
+                LinearGradient(colors: [Color.fiTealSoft, .white], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 90)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
             }
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
         )
-        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
     }
 
-    private func chip(icon: String, text: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 9))
-            Text(text).font(.inter(9, .medium))
-        }
-        .foregroundStyle(Color.fiTeal)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(Color.fiGreenSoft))
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.inter(9, .semibold))
-            .foregroundStyle(Color.fiTextSecondary)
-            .padding(.bottom, 8)
-    }
-
-    private func iconBox(_ name: String) -> some View {
-        RoundedRectangle(cornerRadius: 6)
-            .fill(Color.fiIconBackground)
-            .frame(width: 28, height: 28)
-            .overlay(
-                Image(systemName: name)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.fiTealDark)
-            )
-    }
-
-    private func row(icon: String, title: String, value: String) -> some View {
-        Button { router.push(.editProfile) } label: {
-            HStack(spacing: 10) {
-                iconBox(icon)
-                Text(title).font(.inter(12)).foregroundStyle(Color.fiGrayText)
+    private func row(icon: String, title: String, value: String?, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                IconTile(systemName: icon, size: 36)
+                Text(title)
+                    .font(.poppins(15, value == nil ? .medium : .regular))
+                    .foregroundStyle(value == nil ? Color.fiTextPrimary : Color.fiTextSecondary)
                 Spacer()
-                Text(value).font(.inter(12, .semibold)).foregroundStyle(.black)
+                if let value {
+                    Text(value)
+                        .font(.poppins(15, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.fiLightGrayText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.fiTextTertiary)
             }
-            .padding(12)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

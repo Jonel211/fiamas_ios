@@ -15,27 +15,26 @@ struct ProfileAvatarView: View {
                         .resizable()
                         .scaledToFill()
                 } else {
-                    Color.fiTealDark
+                    LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing)
                         .overlay(
                             Text(initials)
-                                .font(.inter(size * 0.36, .bold))
+                                .font(.poppins(size * 0.34, .semibold))
                                 .foregroundStyle(.white)
                         )
                 }
             }
             .frame(width: size, height: size)
             .clipShape(Circle())
+            .overlay(Circle().stroke(.white, lineWidth: 4))
+            .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
 
             if showsCameraBadge {
-                Circle()
-                    .fill(.white)
-                    .frame(width: size * 0.3, height: size * 0.3)
-                    .overlay(
-                        Image(systemName: "camera")
-                            .font(.system(size: size * 0.13))
-                            .foregroundStyle(Color.fiTealDark)
-                    )
-                    .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+                Image(systemName: "camera.fill")
+                    .font(.system(size: size * 0.13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: size * 0.32, height: size * 0.32)
+                    .background(Circle().fill(Color.fiGold))
+                    .overlay(Circle().stroke(.white, lineWidth: 2.5))
                     .offset(x: 2, y: 2)
             }
         }
