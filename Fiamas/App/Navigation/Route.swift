@@ -12,6 +12,7 @@ enum Route: Hashable {
     case notifications
     case paymentDetail
     case changePassword
+    case editProfile
     case help
     case complaints
 }

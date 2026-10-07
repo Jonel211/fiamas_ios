@@ -21,6 +21,7 @@ extension AppRouter {
         case "perfil": phase = .main; initialTab = .profile
         case "detalle": phase = .main; mainPath = [.paymentDetail]
         case "cambiar": phase = .main; mainPath = [.changePassword]
+        case "editar": phase = .main; initialTab = .profile; mainPath = [.editProfile]
         case "ayuda": phase = .main; mainPath = [.menu, .help]
         case "reclamos": phase = .main; mainPath = [.menu, .complaints]
         default: break

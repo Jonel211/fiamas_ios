@@ -3,10 +3,17 @@ import SwiftUI
 /// iOS-perfil-clientes
 struct ProfileView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(ProfileStore.self) private var store
+    @State private var isChoosingPhoto = false
 
     var body: some View {
         VStack(spacing: 0) {
-            FiHeader(title: "Perfil", trailingIcon: nil, onLeading: { router.push(.menu) })
+            FiHeader(
+                title: "Perfil",
+                trailingIcon: "square.and.pencil",
+                onLeading: { router.push(.menu) },
+                onTrailing: { router.push(.editProfile) }
+            )
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -15,9 +22,9 @@ struct ProfileView: View {
 
                     sectionTitle("INFORMACIÓN PERSONAL")
                     VStack(spacing: 0) {
-                        row(icon: "person", title: "Nombres", value: "Martha")
+                        row(icon: "person", title: "Nombres", value: store.profile.firstName)
                         Divider().padding(.horizontal, 12)
-                        row(icon: "person.text.rectangle", title: "Apellidos", value: "Gómez")
+                        row(icon: "person.text.rectangle", title: "Apellidos", value: store.profile.lastName)
                     }
                     .background(RoundedRectangle(cornerRadius: 8).fill(.white))
                     .padding(.bottom, 14)
@@ -27,7 +34,7 @@ struct ProfileView: View {
                         iconBox("phone")
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Teléfono").font(.inter(9)).foregroundStyle(Color.fiGrayText)
-                            Text("+51 987 654 321").font(.inter(12, .medium))
+                            Text(store.profile.phone).font(.inter(12, .medium))
                         }
                         Spacer()
                         StatusBadge(text: "Verificado", foreground: .fiTeal, background: .fiGreenSoft, font: .inter(9, .medium))
@@ -57,32 +64,25 @@ struct ProfileView: View {
             }
             .background(Color.fiProfileBackground)
         }
+        .photoSourcePicker(
+            isPresented: $isChoosingPhoto,
+            canRemove: store.photo != nil,
+            onPick: { store.setPhoto($0) },
+            onRemove: { store.setPhoto(nil) }
+        )
     }
 
     private var profileCard: some View {
         VStack(spacing: 2) {
-            ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(Color.fiTealDark)
-                    .frame(width: 74, height: 74)
-                    .overlay(
-                        Text("M").font(.inter(28, .bold)).foregroundStyle(.white)
-                    )
-                Circle()
-                    .fill(.white)
-                    .frame(width: 22, height: 22)
-                    .overlay(
-                        Image(systemName: "camera")
-                            .font(.system(size: 10))
-                            .foregroundStyle(Color.fiTealDark)
-                    )
-                    .offset(x: 2, y: 2)
+            Button { isChoosingPhoto = true } label: {
+                ProfileAvatarView(photo: store.photo, initials: store.profile.initials)
             }
+            .buttonStyle(.plain)
             .padding(.bottom, 10)
 
-            Text("Martha Gómez")
+            Text(store.profile.fullName)
                 .font(.inter(18, .semibold))
-            Text("+51 987 654 321")
+            Text(store.profile.phone)
                 .font(.inter(11))
                 .foregroundStyle(Color.fiGrayText)
 
@@ -137,19 +137,25 @@ struct ProfileView: View {
     }
 
     private func row(icon: String, title: String, value: String) -> some View {
-        HStack(spacing: 10) {
-            iconBox(icon)
-            Text(title).font(.inter(12)).foregroundStyle(Color.fiGrayText)
-            Spacer()
-            Text(value).font(.inter(12, .semibold))
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10))
-                .foregroundStyle(Color.fiLightGrayText)
+        Button { router.push(.editProfile) } label: {
+            HStack(spacing: 10) {
+                iconBox(icon)
+                Text(title).font(.inter(12)).foregroundStyle(Color.fiGrayText)
+                Spacer()
+                Text(value).font(.inter(12, .semibold)).foregroundStyle(.black)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.fiLightGrayText)
+            }
+            .padding(12)
+            .contentShape(Rectangle())
         }
-        .padding(12)
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
-    ProfileView().environment(AppRouter())
+    ProfileView()
+        .environment(AppRouter())
+        .environment(ProfileStore())
 }

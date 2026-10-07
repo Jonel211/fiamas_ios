@@ -5,61 +5,84 @@ struct NotificationsView: View {
     @Environment(AppRouter.self) private var router
 
     @State private var groups = NotificationGroup.samples
+    @State private var isConfirmingDelete = false
+
+    private var hasUnread: Bool {
+        groups.contains { $0.items.contains(where: \.unread) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             FiHeader(
                 title: "Notificaciones",
                 leading: .back,
-                trailingIcon: "trash",
+                trailingIcon: groups.isEmpty ? nil : "trash",
                 onLeading: { router.pop() },
-                onTrailing: { groups.removeAll() }
+                onTrailing: { isConfirmingDelete = true }
             )
 
-            ScrollView {
-                VStack(spacing: 8) {
-                    Button(action: markAllRead) {
-                        Text("Marcar todas como leídas")
-                            .font(.poppins(11, .semibold))
-                            .foregroundStyle(Color.fiTeal)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 32)
-                            .cardStyle(cornerRadius: 8, border: .fiCardBorder)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 22)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(groups) { group in
-                            HStack {
-                                Text(group.title)
-                                    .font(.inter(8, .semibold))
-                                    .foregroundStyle(Color.fiGrayText)
-                                Spacer()
-                                let newCount = group.items.filter(\.unread).count
-                                if newCount > 0 {
-                                    Text("\(newCount) nuevas")
-                                        .font(.inter(8, .medium))
-                                        .foregroundStyle(Color.fiGrayText)
-                                }
-                            }
-                            .padding(.top, 6)
-
-                            ForEach(group.items) { item in
-                                NotificationCardView(item: item)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.fiNotificationBackground)
-                }
-                .padding(.horizontal, 28)
-                .padding(.bottom, 16)
+            if groups.isEmpty {
+                emptyState
+            } else {
+                list
             }
         }
         .background(Color.white.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog("¿Eliminar todas las notificaciones?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+            Button("Eliminar todas", role: .destructive) {
+                withAnimation { groups.removeAll() }
+            }
+        }
+    }
+
+    private var list: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if hasUnread {
+                    Button("Marcar todas como leídas", action: markAllRead)
+                        .font(.inter(13, .medium))
+                        .foregroundStyle(Color.fiTeal)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.top, 14)
+                }
+
+                ForEach($groups) { $group in
+                    Text(group.title)
+                        .font(.inter(13, .semibold))
+                        .foregroundStyle(Color.fiTextSecondary)
+                        .padding(.top, 22)
+                        .padding(.bottom, 4)
+
+                    ForEach($group.items) { $item in
+                        NotificationCardView(item: item)
+                            .contentShape(Rectangle())
+                            .onTapGesture { item.unread = false }
+
+                        if item.id != group.items.last?.id {
+                            Rectangle()
+                                .fill(Color.fiDivider)
+                                .frame(height: 1)
+                                .padding(.leading, 36)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "bell.slash")
+                .font(.system(size: 32, weight: .light))
+                .foregroundStyle(Color.fiLightGrayText)
+            Text("No tienes notificaciones")
+                .font(.inter(14))
+                .foregroundStyle(Color.fiGrayText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func markAllRead() {

@@ -4,39 +4,34 @@ struct NotificationCardView: View {
     let item: AppNotification
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(item.kind.background)
-                    .frame(width: 26, height: 26)
-                    .overlay(
-                        Image(systemName: item.kind.icon)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(item.kind.foreground)
-                    )
-                StatusBadge(text: item.kind.label, foreground: item.kind.foreground,
-                            background: item.kind.background, font: .inter(8, .medium))
-                Spacer()
-                Text(item.time)
-                    .font(.inter(9))
-                    .foregroundStyle(Color.fiLightGrayText)
-            }
-            .overlay(alignment: .topTrailing) {
-                if item.unread {
-                    Circle().fill(Color.fiTealDark).frame(width: 5, height: 5).offset(y: -6)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: item.kind.icon)
+                .font(.system(size: 17))
+                .foregroundStyle(Color.fiTeal)
+                .frame(width: 24, height: 24)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.title)
+                        .font(.inter(14, item.unread ? .semibold : .regular))
+                        .foregroundStyle(Color.fiTextPrimary)
+                    Spacer(minLength: 8)
+                    Text(item.time)
+                        .font(.inter(11))
+                        .foregroundStyle(Color.fiLightGrayText)
                 }
+                Text(item.message)
+                    .font(.inter(12))
+                    .foregroundStyle(Color.fiGrayText)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text(item.title)
-                .font(.inter(13, .medium))
-            Text(item.message)
-                .font(.inter(9))
-                .foregroundStyle(Color.fiTextBody)
-                .lineSpacing(3)
+            Circle()
+                .fill(item.unread ? Color.fiTeal : .clear)
+                .frame(width: 8, height: 8)
+                .padding(.top, 5)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 8).fill(.white))
+        .padding(.vertical, 14)
     }
 }

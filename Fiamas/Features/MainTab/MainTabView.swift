@@ -31,5 +31,7 @@ struct MainTabView: View {
 }
 
 #Preview {
-    NavigationStack { MainTabView() }.environment(AppRouter())
+    NavigationStack { MainTabView() }
+        .environment(AppRouter())
+        .environment(ProfileStore())
 }

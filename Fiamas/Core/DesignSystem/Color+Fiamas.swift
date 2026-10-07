@@ -36,7 +36,6 @@ extension Color {
     static let fiLightGrayText = Color(hex: 0x9CA3AF)
     static let fiVerifyBackground = Color(hex: 0xF4F9F9)
     static let fiSectionBackground = Color(hex: 0xF1F8F9)
-    static let fiNotificationBackground = Color(hex: 0xF3F5FC)
     static let fiProfileBackground = Color(hex: 0xF8F4FA)
     static let fiTotalBox = Color(hex: 0xD9D9D9)
 
@@ -46,7 +45,6 @@ extension Color {
     static let fiOrangeSoft = Color(hex: 0xFDEFD3)
     static let fiGreenSoft = Color(hex: 0xE3F0EC)
     static let fiLogoutRed = Color(hex: 0xE5484D)
-    static let fiAmberText = Color(hex: 0x8A5A00)
 
     // Textos
     static let fiTextPrimary = Color(hex: 0x1F2937)

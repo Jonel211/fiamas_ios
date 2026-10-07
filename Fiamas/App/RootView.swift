@@ -37,6 +37,7 @@ struct RootView: View {
             case .notifications: NotificationsView()
             case .paymentDetail: PaymentDetailView()
             case .changePassword: ChangePasswordView()
+            case .editProfile: EditProfileView()
             case .help: HelpView()
             case .complaints: ComplaintsView()
             }
