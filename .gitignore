@@ -1,0 +1,37 @@
+# OS X
+# ========================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / Swift
+# ========================
+build/
+DerivedData/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspace
+!*.xcworkspace/xcshareddata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+.swiftpm/
+.build/
+
+# Visual Studio Code
+# ========================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# CocoaPods / Swift Package Manager (Opcional)
+# ========================
+# Descomenta si usas CocoaPods y no quieres subir las dependencias
+# Pods/
+# .swiftpm/xcode/package.resolved
