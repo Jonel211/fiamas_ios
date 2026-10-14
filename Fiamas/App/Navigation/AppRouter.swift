@@ -23,6 +23,14 @@ final class AppRouter {
         if phase == .main { _ = mainPath.popLast() } else { _ = authPath.popLast() }
     }
 
+    func popToRoot() {
+        if phase == .main {
+            mainPath.removeAll()
+        } else {
+            authPath.removeAll()
+        }
+    }
+
     func enterApp() {
         mainPath = []
         phase = .main
