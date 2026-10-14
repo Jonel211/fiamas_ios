@@ -14,7 +14,7 @@ struct RecoverPasswordView: View {
             AuthTitle(title: "¡No te preocupes!", subtitle: "En Fiamas no pierdes nada. Ingresa tu número de teléfono y te enviaremos un código de validación.")
                 .padding(.bottom, 24)
 
-            FiTextField(label: "Número de teléfono", text: $phone, placeholder: "9xx xxx xxx",
+            FiTextField(label: "Número de teléfono", text: $phone, placeholder: "999 999 999",
                         icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
 
             FiButton(title: "Enviar código", isEnabled: phone.filter(\.isNumber).count >= 9) {

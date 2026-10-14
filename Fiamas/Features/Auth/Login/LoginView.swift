@@ -16,7 +16,7 @@ struct LoginView: View {
                 .padding(.bottom, 28)
 
             VStack(spacing: 16) {
-                FiTextField(label: "Teléfono", text: $phone, placeholder: "9xx xxx xxx",
+                FiTextField(label: "Teléfono", text: $phone, placeholder: "999 999 999",
                             icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
                 FiTextField(label: "Contraseña", text: $password, placeholder: "Tu contraseña",
                             icon: "lock", isSecure: true, contentType: .password)

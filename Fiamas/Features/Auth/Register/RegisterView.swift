@@ -23,9 +23,9 @@ struct RegisterView: View {
                 .padding(.bottom, 24)
 
             VStack(spacing: 16) {
-                FiTextField(label: "Número de celular", text: $phone, placeholder: "9xx xxx xxx",
+                FiTextField(label: "Número de celular", text: $phone, placeholder: "999 999 999",
                             icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
-                FiTextField(label: "Nombres completos", text: $fullName, placeholder: "Ej. Martha Gómez",
+                FiTextField(label: "Nombres completos", text: $fullName, placeholder: "Ej. Joashin Gómez",
                             icon: "person", contentType: .name, capitalization: .words)
                 FiTextField(label: "Crear una contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
                             icon: "lock", isSecure: true, contentType: .newPassword)

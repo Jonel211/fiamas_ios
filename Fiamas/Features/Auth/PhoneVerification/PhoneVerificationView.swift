@@ -32,7 +32,7 @@ struct PhoneVerificationView: View {
                 .padding(.top, 20)
 
             (Text("Te enviamos un código de 6 dígitos al\n")
-             + Text("+51 9xx xxx xxx").font(.poppins(15, .semibold)).foregroundColor(.fiTextPrimary))
+             + Text("+51 999 999 999").font(.poppins(15, .semibold)).foregroundColor(.fiTextPrimary))
                 .font(.poppins(15))
                 .foregroundStyle(Color.fiTextSecondary)
                 .multilineTextAlignment(.center)
