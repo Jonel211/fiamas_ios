@@ -6,28 +6,30 @@ struct VerifyCodeView: View {
     @State private var code = ""
 
     var body: some View {
-        PasswordRecoveryLayout(step: 2) {
-            Text("Ingresa el codigo")
-                .font(.inter(17, .bold))
-                .padding(.bottom, 8)
-            Text("Fiamas te ha enviado un\ncódigo, revisa tu bandeja de\nmensajes.")
-                .font(.inter(14))
-                .padding(.bottom, 16)
-
-            OTPField(code: $code, boxWidth: 24, boxHeight: 32, spacing: 9)
+        AuthLayout(topHeight: 190, onBack: { router.pop() }) {
+            StepIndicator(current: 2)
                 .frame(maxWidth: .infinity)
+                .padding(.bottom, 28)
 
-            Text("El codigo es de un solo uso")
-                .font(.inter(10))
+            AuthTitle(title: "Ingresa el código", subtitle: "Fiamas te ha enviado un código, revisa tu bandeja de mensajes.")
+                .padding(.bottom, 24)
+
+            OTPField(code: $code)
+
+            Label("El código es de un solo uso", systemImage: "info.circle")
+                .font(.poppins(13))
+                .foregroundStyle(Color.fiTextSecondary)
                 .frame(maxWidth: .infinity)
-                .padding(.top, 22)
+                .padding(.top, 16)
 
-            FiButton(title: "Verificar", color: .fiTealBright, height: 32) {
+            FiButton(title: "Verificar", isEnabled: code.count == 6) {
                 router.push(.newPassword)
             }
-            .padding(.top, 20)
+            .padding(.top, 28)
         }
     }
 }
 
-#Preview("Paso 2") { NavigationStack { VerifyCodeView() }.environment(AppRouter()) }
+#Preview {
+    NavigationStack { VerifyCodeView() }.environment(AppRouter())
+}

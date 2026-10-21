@@ -3,18 +3,32 @@ import SwiftUI
 /// iOS-pagos
 struct PaymentsView: View {
     @Environment(AppRouter.self) private var router
-    @State private var selectedStore = "Todas las tiendas"
-    @State private var month = "septiembre 2026"
+    @State private var selectedStore: String? = nil
+    @State private var selectedMonth = "septiembre 2026"
 
-    private let groups = PaymentGroup.samples
+    private let allGroups = PaymentGroup.samples
+    private let months = ["septiembre 2026", "agosto 2026", "julio 2026"]
+
     private var stores: [String] {
-        ["Todas las tiendas"] + groups.flatMap { $0.payments.map(\.store) }
+        Array(Set(allGroups.flatMap { $0.payments.map(\.store) })).sorted()
+    }
+
+    /// Grupos filtrados por mes y tienda.
+    private var groups: [PaymentGroup] {
+        allGroups
+            .filter { $0.month == selectedMonth }
+            .compactMap { group in
+                guard let selectedStore else { return group }
+                let payments = group.payments.filter { $0.store == selectedStore }
+                return payments.isEmpty ? nil : PaymentGroup(title: group.title, month: group.month, payments: payments)
+            }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             FiHeader(
                 title: "Pagos",
+                trailingBadge: true,
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
@@ -22,60 +36,89 @@ struct PaymentsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     filters
-                        .padding(.bottom, 26)
+                        .padding(.bottom, 24)
+
+                    if groups.isEmpty {
+                        Text("No hay pagos con estos filtros")
+                            .font(.poppins(14))
+                            .foregroundStyle(Color.fiTextSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    }
 
                     ForEach(groups) { group in
-                        Text(group.title)
-                            .font(.poppins(14, .medium))
-                            .padding(.leading, 10)
-                            .padding(.bottom, 6)
-                        VStack(spacing: 20) {
+                        GroupLabel(title: group.title)
+                            .padding(.bottom, 8)
+
+                        VStack(spacing: 0) {
                             ForEach(group.payments) { payment in
                                 Button { router.push(.paymentDetail) } label: {
                                     PaymentRowView(payment: payment)
                                 }
                                 .buttonStyle(.plain)
+
+                                if payment.id != group.payments.last?.id {
+                                    FiDivider(leadingInset: 56)
+                                }
                             }
                         }
-                        .padding(.bottom, 16)
+                        .fiCard(padding: 0)
+                        .padding(.bottom, 24)
                     }
                 }
-                .padding(.horizontal, 32)
-                .padding(.top, 26)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
             }
         }
+        .fiScreenBackground()
     }
 
     private var filters: some View {
-        HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Tienda").font(.poppins(13, .semibold))
-                Menu {
-                    ForEach(stores, id: \.self) { s in
-                        Button(s) { selectedStore = s }
-                    }
-                } label: {
-                    HStack {
-                        Text(selectedStore).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text("v")
-                    }
-                    .font(.poppins(10))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 6)
-                    .frame(width: 118, height: 34)
-                    .cardStyle(cornerRadius: 6, border: .fiCardBorder)
+        HStack(spacing: 12) {
+            Menu {
+                Button("Todas las tiendas") { selectedStore = nil }
+                ForEach(stores, id: \.self) { store in
+                    Button(store) { selectedStore = store }
                 }
+            } label: {
+                FilterPill(icon: "storefront", title: selectedStore ?? "Todas las tiendas")
             }
-            Spacer()
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Mes").font(.poppins(10, .semibold)).padding(.leading, 8)
-                Text(month)
-                    .font(.poppins(10))
-                    .frame(width: 110, height: 34)
-                    .cardStyle(cornerRadius: 6, border: .fiCardBorder)
+
+            Menu {
+                ForEach(months, id: \.self) { month in
+                    Button(month.capitalized) { selectedMonth = month }
+                }
+            } label: {
+                FilterPill(icon: "calendar", title: selectedMonth.capitalized)
             }
         }
+    }
+}
+
+/// Botón de filtro con ícono y flecha.
+private struct FilterPill: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundStyle(Color.fiTeal)
+            Text(title)
+                .font(.poppins(13, .medium))
+                .foregroundStyle(Color.fiTextPrimary)
+                .lineLimit(1)
+            Spacer(minLength: 2)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.fiTextSecondary)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.white))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.fiBorder, lineWidth: 1))
     }
 }
 

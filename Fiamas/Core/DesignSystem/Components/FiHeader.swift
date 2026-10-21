@@ -1,59 +1,64 @@
 import SwiftUI
 
+/// Barra superior verde de las pantallas internas.
 struct FiHeader: View {
     enum Leading { case menu, back }
 
     let title: String
     var leading: Leading = .menu
     var trailingIcon: String? = "bell"
-    var color: Color = .fiTeal
+    var trailingBadge: Bool = false
     var onLeading: () -> Void = {}
     var onTrailing: () -> Void = {}
 
     var body: some View {
-        ZStack {
+        HStack(spacing: 0) {
+            iconButton(leading == .menu ? "line.3.horizontal" : "chevron.left",
+                       label: leading == .menu ? "Menú" : "Atrás",
+                       action: onLeading)
+
             Text(title)
-                .font(.inter(17, .semibold))
+                .font(.poppins(18, .semibold))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
 
-            HStack {
-                Button(action: onLeading) {
-                    switch leading {
-                    case .menu:
-                        VStack(spacing: 7) {
-                            ForEach(0..<3, id: \.self) { _ in
-                                Rectangle().fill(.white.opacity(0.9)).frame(width: 26, height: 1.5)
-                            }
+            if let trailingIcon {
+                iconButton(trailingIcon, label: title, action: onTrailing)
+                    .overlay(alignment: .topTrailing) {
+                        if trailingBadge {
+                            Circle()
+                                .fill(Color.fiGold)
+                                .frame(width: 9, height: 9)
+                                .overlay(Circle().stroke(Color.fiTeal, lineWidth: 2))
+                                .offset(x: -9, y: 10)
                         }
-                    case .back:
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(.white)
                     }
-                }
-                .frame(width: 44, height: 44)
-
-                Spacer()
-
-                if let trailingIcon {
-                    Button(action: onTrailing) {
-                        Image(systemName: trailingIcon)
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundStyle(.white)
-                    }
-                    .frame(width: 44, height: 44)
-                }
+            } else {
+                Color.clear.frame(width: 44, height: 44)
             }
-            .padding(.horizontal, 16)
         }
-        .frame(height: 50)
+        .padding(.horizontal, 8)
+        .frame(height: 56)
         .frame(maxWidth: .infinity)
-        .background(color, ignoresSafeAreaEdges: [])
-        // En el diseño la zona de la barra de estado es blanca
+        .background(Color.fiTeal, ignoresSafeAreaEdges: [])
+        // La zona de la barra de estado queda blanca, como en el diseño
         .background(alignment: .top) {
             Color.white
                 .frame(height: 0)
                 .ignoresSafeArea(edges: .top)
         }
+    }
+
+    private func iconButton(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }

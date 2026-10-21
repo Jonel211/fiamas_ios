@@ -1,17 +1,29 @@
 import SwiftUI
 
+/// Etiqueta en forma de píldora (estado, verificación, tipo).
 struct StatusBadge: View {
     let text: String
-    let foreground: Color
-    let background: Color
-    var font: Font = .inter(9, .bold)
+    var icon: String? = nil
+    var foreground: Color = .fiTeal
+    var background: Color = .fiTealSoft
 
     var body: some View {
-        Text(text)
-            .font(font)
-            .foregroundStyle(foreground)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(RoundedRectangle(cornerRadius: 4).fill(background))
+        HStack(spacing: 4) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            Text(text)
+                .font(.poppins(12, .medium))
+        }
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(background))
     }
+}
+
+extension StatusBadge {
+    static let overdue = StatusBadge(text: "Vencido", foreground: .fiDanger, background: .fiDangerSoft)
+    static let pending = StatusBadge(text: "Pendiente", foreground: .fiWarning, background: .fiWarningSoft)
 }

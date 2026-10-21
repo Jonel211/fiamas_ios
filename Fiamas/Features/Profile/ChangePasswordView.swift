@@ -6,58 +6,78 @@ struct ChangePasswordView: View {
     @State private var current = ""
     @State private var newPin = ""
     @State private var confirmPin = ""
+    @State private var didSave = false
+
+    private var pinMismatch: Bool { !confirmPin.isEmpty && newPin != confirmPin }
 
     private var canSave: Bool {
-        !current.isEmpty && newPin.count == 6 && newPin == confirmPin
+        !current.isEmpty && newPin.count == 6 && newPin.allSatisfy(\.isNumber) && newPin == confirmPin
     }
 
     var body: some View {
         VStack(spacing: 0) {
             FiHeader(title: "Cambiar contraseña", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Para el cambio de su contraseña o PIN,\ningrese los siguientes datos")
-                    .font(.poppins(10, .semibold))
-                    .foregroundStyle(Color.fiTeal)
-                    .padding(.bottom, 26)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 17))
+                            .foregroundStyle(Color.fiTeal)
+                        Text("Para cambiar tu contraseña o PIN, ingresa los siguientes datos.")
+                            .font(.poppins(14))
+                            .foregroundStyle(Color.fiTealDark)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiTealSoft))
+                    .padding(.bottom, 24)
 
-                label("Contraseña / PIN")
-                FiTextField(text: $current, isSecure: true, height: 36, cornerRadius: 8)
+                    VStack(spacing: 18) {
+                        FiTextField(label: "Contraseña / PIN actual", text: $current, placeholder: "Tu contraseña actual",
+                                    icon: "lock", isSecure: true, contentType: .password)
+                        VStack(alignment: .leading, spacing: 6) {
+                            FiTextField(label: "Nuevo PIN", text: $newPin, placeholder: "6 dígitos",
+                                        icon: "key", isSecure: true, keyboard: .numberPad, contentType: .newPassword)
+                            Text("Debe tener exactamente 6 dígitos.")
+                                .font(.poppins(12))
+                                .foregroundStyle(newPin.isEmpty || newPin.count == 6 ? Color.fiTextTertiary : Color.fiWarning)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            FiTextField(label: "Confirmar PIN", text: $confirmPin, placeholder: "Repite el nuevo PIN",
+                                        icon: "key", isSecure: true, keyboard: .numberPad, contentType: .newPassword)
+                            if pinMismatch {
+                                Label("Los PIN no coinciden", systemImage: "exclamationmark.circle")
+                                    .font(.poppins(12))
+                                    .foregroundStyle(Color.fiDanger)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.white)
+                            .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+                    )
 
-                label("Nuevo PIN (De 6 dígitos)")
-                FiTextField(text: $newPin, isSecure: true, keyboard: .numberPad, height: 36, cornerRadius: 8)
-
-                label("Confirmar PIN")
-                FiTextField(text: $confirmPin, isSecure: true, keyboard: .numberPad, height: 36, cornerRadius: 8)
-
-                Spacer()
-
-                Button {
-                    router.pop()
-                } label: {
-                    Text("Guardar")
-                        .font(.poppins(15, .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 42)
-                        .background(RoundedRectangle(cornerRadius: 6).fill(canSave ? Color.fiGold : Color.fiGoldLight))
+                    FiButton(title: "Guardar", style: .accent, isEnabled: canSave) {
+                        didSave = true
+                    }
+                    .padding(.top, 28)
                 }
-                .buttonStyle(.plain)
-                .disabled(!canSave)
-                .padding(.bottom, 70)
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 42)
-            .padding(.top, 26)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .background(Color.white.ignoresSafeArea())
+        .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func label(_ text: String) -> some View {
-        Text(text)
-            .font(.poppins(15, .medium))
-            .padding(.top, 8)
-            .padding(.bottom, 10)
+        .alert("PIN actualizado", isPresented: $didSave) {
+            Button("Aceptar") { router.pop() }
+        } message: {
+            Text("Usa tu nuevo PIN la próxima vez que ingreses.")
+        }
     }
 }
 

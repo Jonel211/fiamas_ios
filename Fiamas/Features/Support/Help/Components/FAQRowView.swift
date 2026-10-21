@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Pregunta frecuente que se despliega al tocarla.
 struct FAQRowView: View {
     let faq: FAQ
     let isOpen: Bool
@@ -8,32 +9,31 @@ struct FAQRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button(action: toggle) {
-                HStack {
+                HStack(spacing: 12) {
                     Text(faq.question)
-                        .font(.poppins(13, .medium))
+                        .font(.poppins(15, .medium))
+                        .foregroundStyle(Color.fiTextPrimary)
                         .multilineTextAlignment(.leading)
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .medium))
-                        .rotationEffect(.degrees(isOpen ? 90 : 0))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isOpen ? Color.fiTeal : Color.fiTextTertiary)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
                 }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 40)
+                .padding(16)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if isOpen {
                 Text(faq.answer)
-                    .font(.poppins(11))
-                    .foregroundStyle(Color.fiGrayText)
+                    .font(.poppins(14))
+                    .foregroundStyle(Color.fiTextSecondary)
                     .lineSpacing(3)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    .transition(.opacity)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 8).fill(.white))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fiOutline, lineWidth: 1))
     }
 }

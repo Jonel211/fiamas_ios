@@ -1,44 +1,45 @@
 import SwiftUI
 
+/// Indicador de pasos 1 — 2 — 3 del flujo de recuperar contraseña.
 struct StepIndicator: View {
-    /// Paso actual (1, 2 o 3)
+    /// Paso actual (1...total)
     let current: Int
+    var total: Int = 3
 
     var body: some View {
-        HStack(spacing: 4) {
-            step(1)
-            connector(arrow: true)
-            step(2)
-            connector(arrow: current >= 2)
-            step(3)
-        }
-    }
-
-    private func step(_ number: Int) -> some View {
-        let active = number <= current
-        return Text("\(number)")
-            .font(.inter(14, .semibold))
-            .foregroundStyle(active ? .white : Color.fiLightGrayText)
-            .frame(width: 20, height: 24)
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(active ? Color.fiGold : .white)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(active ? Color.clear : Color.fiFieldBorder, lineWidth: 1)
-            )
-    }
-
-    private func connector(arrow: Bool) -> some View {
         HStack(spacing: 0) {
-            Rectangle().fill(.black).frame(width: arrow ? 22 : 26, height: 1)
-            if arrow {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 7, weight: .semibold))
-                    .padding(.leading, -4)
+            ForEach(1...total, id: \.self) { step in
+                circle(step)
+                if step < total {
+                    Capsule()
+                        .fill(step < current ? Color.fiGold : Color.fiBorder)
+                        .frame(width: 36, height: 3)
+                        .padding(.horizontal, 6)
+                }
             }
         }
-        .frame(width: 28)
+        .accessibilityElement()
+        .accessibilityLabel("Paso \(current) de \(total)")
+    }
+
+    private func circle(_ step: Int) -> some View {
+        let isDone = step < current
+        let isCurrent = step == current
+        return ZStack {
+            Circle()
+                .fill(isDone || isCurrent ? Color.fiGold : .white)
+            Circle()
+                .stroke(isDone || isCurrent ? Color.clear : Color.fiBorder, lineWidth: 1.5)
+            if isDone {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+            } else {
+                Text("\(step)")
+                    .font(.poppins(14, .semibold))
+                    .foregroundStyle(isCurrent ? .white : Color.fiTextTertiary)
+            }
+        }
+        .frame(width: 32, height: 32)
     }
 }

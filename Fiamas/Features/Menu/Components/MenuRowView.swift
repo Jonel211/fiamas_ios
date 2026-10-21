@@ -6,19 +6,17 @@ struct MenuRowView: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(Color.fiTeal)
-                .frame(width: 22)
+            IconTile(systemName: icon, size: 36)
             Text(title)
-                .font(.poppins(15))
-                .foregroundStyle(.black)
+                .font(.poppins(15, .medium))
+                .foregroundStyle(Color.fiTextPrimary)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.fiChevron)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.fiTextTertiary)
         }
-        .frame(height: 56)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
 }

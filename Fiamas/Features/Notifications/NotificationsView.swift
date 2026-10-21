@@ -7,8 +7,8 @@ struct NotificationsView: View {
     @State private var groups = NotificationGroup.samples
     @State private var isConfirmingDelete = false
 
-    private var hasUnread: Bool {
-        groups.contains { $0.items.contains(where: \.unread) }
+    private var unreadCount: Int {
+        groups.flatMap(\.items).filter(\.unread).count
     }
 
     var body: some View {
@@ -39,31 +39,37 @@ struct NotificationsView: View {
     private var list: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if hasUnread {
-                    Button("Marcar todas como leídas", action: markAllRead)
-                        .font(.inter(13, .medium))
-                        .foregroundStyle(Color.fiTeal)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 14)
+                HStack {
+                    Text(unreadCount == 0 ? "Todo al día" : "\(unreadCount) sin leer")
+                        .font(.poppins(14, .medium))
+                        .foregroundStyle(Color.fiTextSecondary)
+                    Spacer()
+                    if unreadCount > 0 {
+                        Button(action: markAllRead) {
+                            Text("Marcar todas como leídas")
+                                .font(.poppins(14, .medium))
+                                .foregroundStyle(Color.fiTeal)
+                        }
+                    }
                 }
+                .padding(.top, 16)
 
                 ForEach($groups) { $group in
                     Text(group.title)
-                        .font(.inter(13, .semibold))
-                        .foregroundStyle(Color.fiTextSecondary)
-                        .padding(.top, 22)
-                        .padding(.bottom, 4)
+                        .font(.poppins(15, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                        .padding(.top, 24)
+                        .padding(.bottom, 2)
 
                     ForEach($group.items) { $item in
                         NotificationCardView(item: item)
                             .contentShape(Rectangle())
-                            .onTapGesture { item.unread = false }
+                            .onTapGesture {
+                                withAnimation(.easeOut(duration: 0.2)) { item.unread = false }
+                            }
 
                         if item.id != group.items.last?.id {
-                            Rectangle()
-                                .fill(Color.fiDivider)
-                                .frame(height: 1)
-                                .padding(.leading, 36)
+                            FiDivider(leadingInset: 36)
                         }
                     }
                 }
@@ -74,20 +80,22 @@ struct NotificationsView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             Image(systemName: "bell.slash")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(Color.fiLightGrayText)
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(Color.fiTextTertiary)
             Text("No tienes notificaciones")
-                .font(.inter(14))
-                .foregroundStyle(Color.fiGrayText)
+                .font(.poppins(16, .medium))
+                .foregroundStyle(Color.fiTextSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func markAllRead() {
-        for g in groups.indices {
-            for i in groups[g].items.indices { groups[g].items[i].unread = false }
+        withAnimation(.easeOut(duration: 0.2)) {
+            for g in groups.indices {
+                for i in groups[g].items.indices { groups[g].items[i].unread = false }
+            }
         }
     }
 }

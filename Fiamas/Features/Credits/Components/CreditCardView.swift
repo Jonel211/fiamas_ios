@@ -1,37 +1,42 @@
 import SwiftUI
 
+/// Un fiado dentro de la tarjeta de su tienda.
 struct CreditCardView: View {
     let credit: Credit
 
+    private var footnoteColor: Color {
+        credit.status == .overdue ? .fiDanger : .fiTextSecondary
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center) {
                 Text(credit.amount)
-                    .font(.inter(18, .semibold))
+                    .font(.poppins(20, .semibold))
                     .foregroundStyle(Color.fiTextPrimary)
                 Spacer()
                 switch credit.status {
-                case .overdue:
-                    StatusBadge(text: "VENCIDO", foreground: .fiRed, background: .fiRedSoft)
-                case .pending:
-                    StatusBadge(text: "PENDIENTE", foreground: .fiOrange, background: .fiOrangeSoft)
+                case .overdue: StatusBadge.overdue
+                case .pending: StatusBadge.pending
                 }
             }
+
             Text(credit.items)
-                .font(.inter(11))
-                .foregroundStyle(Color.fiGrayText)
+                .font(.poppins(14))
+                .foregroundStyle(Color.fiTextSecondary)
                 .lineLimit(2)
+
             HStack {
-                Text(credit.date)
-                    .font(.inter(10))
-                    .foregroundStyle(Color.fiLightGrayText)
+                Label(credit.date, systemImage: "calendar")
+                    .foregroundStyle(Color.fiTextTertiary)
                 Spacer()
                 Text(credit.footnote)
-                    .font(.inter(10, .medium))
-                    .foregroundStyle(Color.fiOrange)
+                    .font(.poppins(12, .medium))
+                    .foregroundStyle(footnoteColor)
             }
+            .font(.poppins(12))
+            .padding(.top, 2)
         }
-        .padding(12)
-        .cardStyle(cornerRadius: 10, border: Color.fiNeutralBorder, shadow: true)
+        .padding(.vertical, 14)
     }
 }
