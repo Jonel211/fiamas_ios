@@ -5,9 +5,44 @@ struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProfileStore.self) private var profileStore
 
-    private let stores = Store.samples
+    // ESTADOS PARA LA CONEXIÓN CON EL SERVIDOR
+    @State private var fiadosAPI: [FiadoAPI] = []
+    @State private var isLoading = true
+    
+    // Ya no mostraremos el error crudo, solo mostraremos la lista vacía
+    // @State private var errorMessage: String? = nil
 
-    private var totalOwed: Int { stores.map(\.used).reduce(0, +) }
+    private var mappedStores: [Store] {
+        var dict: [String: Store] = [:]
+        for fiado in fiadosAPI {
+            if let tienda = fiado.tienda {
+                if let existing = dict[tienda.id] {
+                    let newUsed = existing.used + Int(fiado.saldoPendiente)
+                    dict[tienda.id] = Store(
+                        name: existing.name,
+                        description: existing.description,
+                        date: existing.date,
+                        used: newUsed,
+                        limit: existing.limit
+                    )
+                } else {
+                    dict[tienda.id] = Store(
+                        name: tienda.nombre,
+                        description: "Fiado pendiente",
+                        date: String(fiado.fechaCreacion.prefix(10)),
+                        used: Int(fiado.saldoPendiente),
+                        limit: 1000
+                    )
+                }
+            }
+        }
+        return Array(dict.values)
+    }
+
+    private var totalOwed: String {
+        let total = fiadosAPI.map(\.saldoPendiente).reduce(0, +)
+        return String(format: "%.2f", total)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,15 +63,35 @@ struct HomeView: View {
                         .foregroundStyle(Color.fiTextSecondary)
                         .padding(.bottom, 16)
 
-                    TotalOwedCard(total: totalOwed, score: 92)
-                        .padding(.bottom, 28)
+                    if isLoading {
+                        ProgressView("Cargando...")
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    } else {
+                        // Siempre mostramos la tarjeta, si hay error el total es 0.00
+                        TotalOwedCard(total: totalOwed, score: 92)
+                            .padding(.bottom, 28)
 
-                    SectionHeader(title: "Tiendas recientes", trailing: "\(stores.count) tiendas")
-                        .padding(.bottom, 12)
+                        SectionHeader(title: "Tiendas recientes", trailing: "\(mappedStores.count) tiendas")
+                            .padding(.bottom, 12)
 
-                    VStack(spacing: 12) {
-                        ForEach(stores) { store in
-                            StoreCardView(store: store)
+                        if mappedStores.isEmpty {
+                            VStack(spacing: 10) {
+                                Image(systemName: "cart.badge.questionmark")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(Color.fiTextTertiary)
+                                Text("Aún no tienes fiados activos.")
+                                    .font(.poppins(14, .medium))
+                                    .foregroundStyle(Color.fiTextSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 20)
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(mappedStores) { store in
+                                    StoreCardView(store: store)
+                                }
+                            }
                         }
                     }
                 }
@@ -46,12 +101,26 @@ struct HomeView: View {
             }
         }
         .fiScreenBackground()
+        .task {
+            await loadData()
+        }
+    }
+    
+    private func loadData() async {
+        isLoading = true
+        do {
+            fiadosAPI = try await DebtsService.shared.fetchMyDebts()
+        } catch {
+            print("Error al cargar fiados: \(error.localizedDescription)")
+            fiadosAPI = []
+        }
+        isLoading = false
     }
 }
 
-/// Tarjeta principal con el total adeudado y el score crediticio.
+// ... (Deja la struct TotalOwedCard exactamente igual que antes)
 private struct TotalOwedCard: View {
-    let total: Int
+    let total: String
     let score: Int
 
     var body: some View {
@@ -60,7 +129,7 @@ private struct TotalOwedCard: View {
                 .font(.poppins(14, .medium))
                 .foregroundStyle(.white.opacity(0.85))
 
-            Text("S/ \(total).00")
+            Text("S/ \(total)")
                 .font(.poppins(36, .bold))
                 .foregroundStyle(.white)
                 .padding(.top, 2)
@@ -103,7 +172,6 @@ private struct TotalOwedCard: View {
                 .fill(LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .shadow(color: Color.fiTealDark.opacity(0.3), radius: 14, y: 8)
         )
-        .accessibilityElement(children: .combine)
     }
 }
 

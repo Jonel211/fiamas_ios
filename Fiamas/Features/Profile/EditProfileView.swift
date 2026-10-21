@@ -11,6 +11,10 @@ struct EditProfileView: View {
     @State private var didChangePhoto = false
     @State private var isChoosingPhoto = false
     @State private var didLoad = false
+    
+    // ESTADOS PARA LA CONEXIÓN CON EL SERVIDOR
+    @State private var isSaving = false
+    @State private var errorMessage: String? = nil
 
     private var draftProfile: UserProfile {
         UserProfile(firstName: firstName, lastName: lastName, phone: store.profile.phone)
@@ -80,9 +84,25 @@ struct EditProfileView: View {
                             .fill(.white)
                             .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
                     )
+                    
+                    // Mensaje de error si el servidor falla
+                    if let errorMessage = errorMessage {
+                        Text(errorMessage)
+                            .font(.poppins(12))
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 16)
+                    }
 
-                    FiButton(title: "Guardar cambios", style: .accent, isEnabled: isValid && hasChanges, action: save)
-                        .padding(.top, 28)
+                    // Botón de guardar (con estado de carga)
+                    FiButton(
+                        title: isSaving ? "Guardando..." : "Guardar cambios",
+                        style: .accent,
+                        isEnabled: isValid && hasChanges && !isSaving,
+                        action: { Task { await save() } }
+                    )
+                    .padding(.top, 28)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 28)
@@ -113,12 +133,33 @@ struct EditProfileView: View {
         }
     }
 
-    private func save() {
-        store.update(firstName: firstName, lastName: lastName)
-        if didChangePhoto {
-            store.setPhoto(photo)
+    // MARK: - Función para guardar en el backend
+    private func save() async {
+        isSaving = true
+        errorMessage = nil
+        
+        do {
+            // 1. Llamamos al endpoint PUT /api/clientes/:id (en el ProfileService)
+            let updated = try await ProfileService.shared.updateProfile(
+                nombres: firstName,
+                apellidos: lastName
+            )
+            
+            // 2. Actualizamos el Store local con los datos reales que confirmó el servidor
+            store.update(firstName: updated.nombres, lastName: updated.apellidos)
+            
+            if didChangePhoto {
+                store.setPhoto(photo) // La foto aún no tiene endpoint, se guarda local
+            }
+            
+            // 3. Cerramos la pantalla y volvemos al perfil
+            router.pop()
+        } catch {
+            // 4. Si el servidor falla, mostramos el error en rojo
+            errorMessage = error.localizedDescription
         }
-        router.pop()
+        
+        isSaving = false
     }
 }
 
