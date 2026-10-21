@@ -11,7 +11,7 @@ struct RootView: View {
                 SplashView()
             case .auth:
                 NavigationStack(path: $router.authPath) {
-                    RegisterView()
+                    WelcomeView()
                         .navigationDestination(for: Route.self, destination: destination)
                 }
             case .main:
@@ -28,6 +28,8 @@ struct RootView: View {
     private func destination(_ route: Route) -> some View {
         Group {
             switch route {
+            case .welcome: WelcomeView()
+            case .register: RegisterView()
             case .login: LoginView()
             case .phoneVerification: PhoneVerificationView()
             case .recoverPassword: RecoverPasswordView()

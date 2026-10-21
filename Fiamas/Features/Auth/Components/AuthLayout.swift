@@ -3,6 +3,8 @@ import SwiftUI
 /// Estructura de las pantallas de acceso: zona superior con el logo
 /// y una hoja con esquinas redondeadas para el formulario.
 struct AuthLayout<Content: View>: View {
+    @Environment(AppRouter.self) private var router
+
     var topColor: Color = .fiSky
     var sheetColor: Color = .white
     var logoLayout: FiamasLogo.Layout = .vertical
@@ -15,24 +17,30 @@ struct AuthLayout<Content: View>: View {
             topColor.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                FiamasLogo(layout: logoLayout, iconHeight: logoLayout == .horizontal ? 48 : 64)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: topHeight)
-                    .overlay(alignment: .topLeading) {
-                        if let onBack {
-                            Button(action: onBack) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(Color.fiNavy)
-                                    .frame(width: 42, height: 42)
-                                    .background(Circle().fill(.white.opacity(0.75)))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Atrás")
-                            .padding(.leading, 20)
-                            .padding(.top, 8)
+                // Logo interactivo que regresa a la pantalla de bienvenida
+                Button(action: {
+                    router.popToRoot()
+                }) {
+                    FiamasLogo(layout: logoLayout, iconHeight: logoLayout == .horizontal ? 48 : 64)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .frame(height: topHeight)
+                .overlay(alignment: .topLeading) {
+                    if let onBack {
+                        Button(action: onBack) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(Color.fiNavy)
+                                .frame(width: 42, height: 42)
+                                .background(Circle().fill(.white.opacity(0.75)))
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Atrás")
+                        .padding(.leading, 20)
+                        .padding(.top, 8)
                     }
+                }
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
