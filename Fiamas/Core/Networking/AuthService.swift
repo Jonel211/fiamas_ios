@@ -1,5 +1,16 @@
 import Foundation
 
+struct PreRegistroResponse: Decodable {
+    let encontrado: Bool
+    let yaRegistrado: Bool?
+    let nombres: String?
+    let apellidos: String?
+}
+
+struct RegistroClienteResponse: Decodable {
+    let msg: String
+}
+
 class AuthService {
     static let shared = AuthService()
     private init() {}
@@ -36,6 +47,32 @@ class AuthService {
         UserDefaults.standard.set(response.usuario.telefono, forKey: "user_phone")
         
         return response
+    }
+    
+    // Consulta pública: devuelve nombres y apellidos si el tendero ya registró este celular
+    func preRegistro(telefono: String) async throws -> PreRegistroResponse {
+        return try await APIClient.shared.request(
+            endpoint: "/auth/register/cliente/consulta?telefono=\(telefono)",
+            method: "GET",
+            requiresAuth: false
+        )
+    }
+    
+    // Activa la cuenta del cliente creada por el tendero (solo celular + contraseña)
+    func registro(telefono: String, password: String) async throws {
+        let body: [String: Any] = [
+            "telefono": telefono,
+            "password": password
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        
+        let _: RegistroClienteResponse = try await APIClient.shared.request(
+            endpoint: "/auth/register/cliente",
+            method: "POST",
+            body: jsonData,
+            requiresAuth: false
+        )
     }
     
     func logout() {
