@@ -1,7 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// Perfil del usuario. Guarda los datos en UserDefaults y la foto en Application Support.
 @Observable
 final class ProfileStore {
     private(set) var profile: UserProfile
@@ -18,11 +17,23 @@ final class ProfileStore {
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         photoURL = directory.appendingPathComponent("profile-photo.jpg")
 
+        // 1. Intentamos leer el perfil guardado previamente
         if let data = defaults.data(forKey: Self.profileKey),
            let saved = try? JSONDecoder().decode(UserProfile.self, from: data) {
             profile = saved
-        } else {
-            profile = .sample
+        }
+        // 2. Si no hay, lo creamos con los datos REALES del Login
+        else {
+            let savedFirstName = defaults.string(forKey: "user_firstname") ?? ""
+            let savedLastName = defaults.string(forKey: "user_lastname") ?? ""
+            let savedPhone = defaults.string(forKey: "user_phone") ?? ""
+            
+            // Si el login guardó datos, los usa. Si no, usa el sample.
+            if !savedFirstName.isEmpty {
+                profile = UserProfile(firstName: savedFirstName, lastName: savedLastName, phone: savedPhone)
+            } else {
+                profile = .sample
+            }
         }
         photo = UIImage(contentsOfFile: photoURL.path)
     }

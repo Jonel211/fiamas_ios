@@ -5,9 +5,13 @@ struct LoginView: View {
     @Environment(AppRouter.self) private var router
     @State private var phone = ""
     @State private var password = ""
+    
+    // NUEVAS VARIABLES DE ESTADO
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
 
     private var canSubmit: Bool {
-        phone.filter(\.isNumber).count >= 9 && !password.isEmpty
+        phone.filter(\.isNumber).count >= 9 && !password.isEmpty && !isLoading
     }
 
     var body: some View {
@@ -22,6 +26,16 @@ struct LoginView: View {
                             icon: "lock", isSecure: true, contentType: .password)
             }
 
+            // NUEVO: Mostrar mensaje de error si falla el login
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .font(.poppins(12, .regular))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                    .transition(.opacity)
+            }
+
             Button {
                 router.push(.recoverPassword)
             } label: {
@@ -32,8 +46,11 @@ struct LoginView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.top, 14)
 
-            FiButton(title: "Ver mi cuenta", isEnabled: canSubmit) {
-                router.enterApp()
+            // NUEVO: Conectamos el botón al Backend
+            FiButton(title: isLoading ? "Ingresando..." : "Ver mi cuenta", isEnabled: canSubmit) {
+                Task {
+                    await performLogin()
+                }
             }
             .padding(.top, 24)
 
@@ -43,6 +60,37 @@ struct LoginView: View {
             }
             .padding(.top, 20)
         }
+    }
+    
+    // NUEVA FUNCIÓN PARA HACER LA PETICIÓN AL BACKEND
+    private func performLogin() async {
+        isLoading = true
+        errorMessage = nil
+        
+        // Quitamos los espacios del teléfono por si el usuario escribe "999 999 999"
+        let cleanPhone = phone.filter(\.isNumber)
+        
+        do {
+            // Llamamos a nuestro AuthService
+            let response = try await AuthService.shared.login(
+                identificador: cleanPhone,
+                password: password,
+                rol: "cliente"
+            )
+            
+            print("Login exitoso para: \(response.usuario.nombre)")
+            
+            // Si todo sale bien, entramos a la app
+            router.enterApp()
+            
+        } catch {
+            // Si hay un error (contraseña mal, servidor caído, etc.), lo mostramos
+            withAnimation {
+                errorMessage = error.localizedDescription
+            }
+        }
+        
+        isLoading = false
     }
 }
 
