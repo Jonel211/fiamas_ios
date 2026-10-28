@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-// Modelo para recibir la respuesta al consultar/actualizar texto del perfil
+// Modelo para recibir la respuesta del backend
 struct ClientProfileResponse: Codable {
     let msg: String
     let cliente: ClientProfileData
@@ -19,6 +19,11 @@ struct ClientProfileData: Codable {
         case id, telefono, nombres, apellidos, direccion
         case fotoPerfilUrl = "foto_perfil_url"
     }
+}
+
+// Modelo para respuestas genéricas con mensaje
+struct SimpleResponse: Codable {
+    let msg: String
 }
 
 // Modelo para la respuesta de subida de la foto de perfil
@@ -67,5 +72,21 @@ class ProfileService {
         )
         
         return response.fotoPerfilUrl ?? ""
+    }
+
+    /// Envía la petición para cambiar la contraseña o PIN
+    func changePassword(currentPassword: String, newPassword: String) async throws {
+        let body: [String: Any] = [
+            "currentPassword": currentPassword,
+            "newPassword": newPassword
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        
+        let _: SimpleResponse = try await APIClient.shared.request(
+            endpoint: "/app-cliente/cambiar-password",
+            method: "PUT",
+            body: jsonData
+        )
     }
 }
