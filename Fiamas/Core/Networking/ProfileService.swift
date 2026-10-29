@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // Modelo para recibir la respuesta del backend
 struct ClientProfileResponse: Codable {
@@ -20,14 +21,23 @@ struct ClientProfileData: Codable {
     }
 }
 
+// Modelo para respuestas genéricas con mensaje
+struct SimpleResponse: Codable {
+    let msg: String
+}
+
+// Modelo para la respuesta de subida de la foto de perfil
+struct UploadAvatarResponse: Codable {
+    let msg: String
+    let fotoPerfilUrl: String?
+}
+
 class ProfileService {
     static let shared = ProfileService()
     private init() {}
     
-    // Función para guardar los cambios (Ahora usa la nueva ruta)
+    /// Actualiza nombres, apellidos y dirección del cliente
     func updateProfile(nombres: String, apellidos: String, direccion: String? = nil) async throws -> ClientProfileData {
-        
-        // 1. Armamos el body (sin el ID, el backend lo saca del token)
         var body: [String: Any] = [
             "nombres": nombres,
             "apellidos": apellidos
@@ -38,7 +48,6 @@ class ProfileService {
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
-        // 2. Hacemos la petición al endpoint exacto para clientes
         let response: ClientProfileResponse = try await APIClient.shared.request(
             endpoint: "/app-cliente/mi-perfil",
             method: "PUT",
@@ -46,5 +55,38 @@ class ProfileService {
         )
         
         return response.cliente
+    }
+    
+    /// Sube la imagen seleccionada al servidor mediante multipart/form-data
+    func uploadAvatar(image: UIImage) async throws -> String {
+        let resizedImage = image.resized(maxDimension: 600)
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.85) else {
+            throw APIError.serverError("No se pudo procesar la imagen seleccionada.")
+        }
+        
+        let response: UploadAvatarResponse = try await APIClient.shared.uploadMultipart(
+            endpoint: "/app-cliente/mi-perfil/foto",
+            method: "PATCH",
+            fileData: imageData,
+            fieldName: "foto"
+        )
+        
+        return response.fotoPerfilUrl ?? ""
+    }
+
+    /// Envía la petición para cambiar la contraseña o PIN
+    func changePassword(currentPassword: String, newPassword: String) async throws {
+        let body: [String: Any] = [
+            "currentPassword": currentPassword,
+            "newPassword": newPassword
+        ]
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        
+        let _: SimpleResponse = try await APIClient.shared.request(
+            endpoint: "/app-cliente/cambiar-password",
+            method: "PUT",
+            body: jsonData
+        )
     }
 }

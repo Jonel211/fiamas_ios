@@ -5,6 +5,8 @@ import UIKit
 final class ProfileStore {
     private(set) var profile: UserProfile
     private(set) var photo: UIImage?
+    var isUploading: Bool = false
+    var errorMessage: String? = nil
 
     private let defaults: UserDefaults
     private let photoURL: URL
@@ -22,13 +24,12 @@ final class ProfileStore {
            let saved = try? JSONDecoder().decode(UserProfile.self, from: data) {
             profile = saved
         }
-        // 2. Si no hay, lo creamos con los datos REALES del Login
+        // 2. Si no hay, lo creamos con los datos del Login guardados en UserDefaults
         else {
             let savedFirstName = defaults.string(forKey: "user_firstname") ?? ""
             let savedLastName = defaults.string(forKey: "user_lastname") ?? ""
             let savedPhone = defaults.string(forKey: "user_phone") ?? ""
             
-            // Si el login guardó datos, los usa. Si no, usa el sample.
             if !savedFirstName.isEmpty {
                 profile = UserProfile(firstName: savedFirstName, lastName: savedLastName, phone: savedPhone)
             } else {
@@ -55,5 +56,21 @@ final class ProfileStore {
         let resized = image.resized(maxDimension: 600)
         photo = resized
         try? resized.jpegData(compressionQuality: 0.85)?.write(to: photoURL, options: .atomic)
+    }
+
+    /// Sube la imagen usando el ProfileService del proyecto y actualiza la caché local
+    @MainActor
+    func uploadPhotoToBackend(_ image: UIImage) async {
+        isUploading = true
+        errorMessage = nil
+        
+        do {
+            _ = try await ProfileService.shared.uploadAvatar(image: image)
+            self.setPhoto(image)
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+        
+        isUploading = false
     }
 }

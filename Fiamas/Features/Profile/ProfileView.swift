@@ -70,17 +70,34 @@ struct ProfileView: View {
         .photoSourcePicker(
             isPresented: $isChoosingPhoto,
             canRemove: store.photo != nil,
-            onPick: { store.setPhoto($0) },
-            onRemove: { store.setPhoto(nil) }
+            onPick: { selectedImage in
+                Task {
+                    await store.uploadPhotoToBackend(selectedImage)
+                }
+            },
+            onRemove: {
+                store.setPhoto(nil)
+            }
         )
     }
 
     private var profileCard: some View {
         VStack(spacing: 4) {
             Button { isChoosingPhoto = true } label: {
-                ProfileAvatarView(photo: store.photo, initials: store.profile.initials, size: 92)
+                ZStack {
+                    ProfileAvatarView(photo: store.photo, initials: store.profile.initials, size: 92)
+                    
+                    if store.isUploading {
+                        Circle()
+                            .fill(Color.black.opacity(0.4))
+                            .frame(width: 92, height: 92)
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
             }
             .buttonStyle(.plain)
+            .disabled(store.isUploading)
             .accessibilityLabel("Cambiar foto de perfil")
             .padding(.bottom, 10)
 

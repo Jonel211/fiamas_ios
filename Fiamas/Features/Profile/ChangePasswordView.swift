@@ -6,12 +6,16 @@ struct ChangePasswordView: View {
     @State private var current = ""
     @State private var newPin = ""
     @State private var confirmPin = ""
+    
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
+    @State private var showErrorAlert = false
     @State private var didSave = false
 
     private var pinMismatch: Bool { !confirmPin.isEmpty && newPin != confirmPin }
 
     private var canSave: Bool {
-        !current.isEmpty && newPin.count == 6 && newPin.allSatisfy(\.isNumber) && newPin == confirmPin
+        !current.isEmpty && newPin.count == 6 && newPin.allSatisfy(\.isNumber) && newPin == confirmPin && !isLoading
     }
 
     var body: some View {
@@ -60,8 +64,8 @@ struct ChangePasswordView: View {
                             .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
                     )
 
-                    FiButton(title: "Guardar", style: .accent, isEnabled: canSave) {
-                        didSave = true
+                    FiButton(title: isLoading ? "Guardando..." : "Guardar", style: .accent, isEnabled: canSave) {
+                        Task { await handleSave() }
                     }
                     .padding(.top, 28)
                 }
@@ -78,6 +82,27 @@ struct ChangePasswordView: View {
         } message: {
             Text("Usa tu nuevo PIN la próxima vez que ingreses.")
         }
+        .alert("Error", isPresented: $showErrorAlert) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "No se pudo actualizar el PIN. Intenta nuevamente.")
+        }
+    }
+
+    @MainActor
+    private func handleSave() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            try await ProfileService.shared.changePassword(currentPassword: current, newPassword: newPin)
+            didSave = true
+        } catch {
+            errorMessage = error.localizedDescription
+            showErrorAlert = true
+        }
+        
+        isLoading = false
     }
 }
 
