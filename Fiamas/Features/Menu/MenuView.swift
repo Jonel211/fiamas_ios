@@ -1,4 +1,5 @@
 import SwiftUI
+ 
 
 /// iOS-menu
 struct MenuView: View {
@@ -66,7 +67,10 @@ struct MenuView: View {
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("¿Quieres cerrar sesión?", isPresented: $isConfirmingLogout, titleVisibility: .visible) {
-            Button("Cerrar sesión", role: .destructive) { router.logout() }
+            Button("Cerrar sesión", role: .destructive) {
+                router.logout()
+                profileStore.reload()
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+ 
 import UIKit
 
 @Observable
@@ -9,32 +10,44 @@ final class ProfileStore {
     var errorMessage: String? = nil
 
     private let defaults: UserDefaults
-    private let photoURL: URL
-    private static let profileKey = "userProfile"
+    private let directory: URL
 
     init(defaults: UserDefaults = .standard, fileManager: FileManager = .default) {
         self.defaults = defaults
 
-        let directory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        photoURL = directory.appendingPathComponent("profile-photo.jpg")
+        let dir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+        directory = dir
 
-        // 1. Intentamos leer el perfil guardado previamente
-        if let data = defaults.data(forKey: Self.profileKey),
+        profile = UserProfile(firstName: "", lastName: "", phone: "")
+        reload()
+    }
+
+    // Usuario con sesión activa ("guest" si no hay sesión)
+    private var currentUserID: String {
+        defaults.string(forKey: "user_id") ?? "guest"
+    }
+
+    private var profileKey: String { "userProfile_\(currentUserID)" }
+
+    private var photoURL: URL {
+        directory.appendingPathComponent("profile-photo-\(currentUserID).jpg")
+    }
+
+    /// Vuelve a leer el perfil y la foto del usuario actual.
+    /// Llamar justo después de iniciar sesión y después de cerrar sesión.
+    func reload() {
+        // 1. Perfil guardado de ESTE usuario
+        if let data = defaults.data(forKey: profileKey),
            let saved = try? JSONDecoder().decode(UserProfile.self, from: data) {
             profile = saved
         }
-        // 2. Si no hay, lo creamos con los datos del Login guardados en UserDefaults
+        // 2. Si no hay, usa los datos del login guardados en UserDefaults
         else {
-            let savedFirstName = defaults.string(forKey: "user_firstname") ?? ""
-            let savedLastName = defaults.string(forKey: "user_lastname") ?? ""
-            let savedPhone = defaults.string(forKey: "user_phone") ?? ""
-            
-            if !savedFirstName.isEmpty {
-                profile = UserProfile(firstName: savedFirstName, lastName: savedLastName, phone: savedPhone)
-            } else {
-                profile = .sample
-            }
+            let firstName = defaults.string(forKey: "user_firstname") ?? ""
+            let lastName = defaults.string(forKey: "user_lastname") ?? ""
+            let phone = defaults.string(forKey: "user_phone") ?? ""
+            profile = UserProfile(firstName: firstName, lastName: lastName, phone: phone)
         }
         photo = UIImage(contentsOfFile: photoURL.path)
     }
@@ -43,7 +56,7 @@ final class ProfileStore {
         profile.firstName = firstName.trimmingCharacters(in: .whitespaces)
         profile.lastName = lastName.trimmingCharacters(in: .whitespaces)
         if let data = try? JSONEncoder().encode(profile) {
-            defaults.set(data, forKey: Self.profileKey)
+            defaults.set(data, forKey: profileKey)
         }
     }
 
