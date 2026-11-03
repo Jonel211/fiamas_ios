@@ -17,7 +17,6 @@ enum Route: Hashable {
     case changePassword
     case editProfile
     case help
-    case complaints
     
     static var paymentDetail: Route {
         .paymentDetail(nil)

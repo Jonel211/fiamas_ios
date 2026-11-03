@@ -49,10 +49,6 @@ struct MenuView: View {
                             MenuRowView(icon: "questionmark.circle", title: "Centro de ayuda")
                         }
                         FiDivider(leadingInset: 64)
-                        Button { router.push(.complaints) } label: {
-                            MenuRowView(icon: "exclamationmark.bubble", title: "Atención de reclamos")
-                        }
-                        FiDivider(leadingInset: 64)
                         ShareLink(item: shareMessage) {
                             MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
                         }

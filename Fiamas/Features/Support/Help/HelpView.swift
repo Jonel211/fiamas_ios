@@ -61,7 +61,12 @@ struct HelpView: View {
                     .opacity(0.9)
                     .padding(.bottom, 12)
 
-                Button { router.push(.complaints) } label: {
+                Button {
+                    let phoneNumber = "+51999999999"
+                    if let url = URL(string: "https://wa.me/\(phoneNumber)"), UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
                     Label("Escríbenos", systemImage: "bubble.left.fill")
                         .font(.poppins(14, .semibold))
                         .foregroundStyle(Color.fiTealDark)
