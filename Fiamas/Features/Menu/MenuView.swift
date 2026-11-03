@@ -29,6 +29,18 @@ struct MenuView: View {
                     .fiCard()
                     .padding(.bottom, 24)
 
+                    GroupLabel(title: "Seguridad")
+                        .padding(.bottom, 8)
+
+                    VStack(spacing: 0) {
+                        Button { router.push(.changePassword) } label: {
+                            MenuRowView(icon: "lock", title: "Cambiar contraseña")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .fiCard(padding: 0)
+                    .padding(.bottom, 24)
+
                     GroupLabel(title: "Soporte")
                         .padding(.bottom, 8)
 
