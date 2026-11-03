@@ -12,57 +12,104 @@ struct PaymentsView: View {
     @State private var selectedStore: String? = nil
     @State private var selectedMonth: String = ""
 
+    // Helper para parsear fechas de forma segura
+    private static func parseDate(_ dateString: String) -> Date {
+        // 1. ISO con milisegundos
+        let isoFormatterMillis = ISO8601DateFormatter()
+        isoFormatterMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = isoFormatterMillis.date(from: dateString) { return d }
+        
+        // 2. ISO estándar
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let d = isoFormatter.date(from: dateString) { return d }
+        
+        // 3. Fallbacks de formatos comunes en bases de datos
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
+            df.dateFormat = fmt
+            if let d = df.date(from: dateString) { return d }
+        }
+        
+        return Date()
+    }
+
     // 1. Traducimos los datos de la API a los grupos que espera tu UI
     private var allGroups: [PaymentGroup] {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
         let monthFormatter = DateFormatter()
         monthFormatter.locale = Locale(identifier: "es_ES")
         monthFormatter.dateFormat = "MMMM yyyy"
         
         let dateTitleFormatter = DateFormatter()
         dateTitleFormatter.locale = Locale(identifier: "es_ES")
-        dateTitleFormatter.dateFormat = "dd MMM yyyy"
+        dateTitleFormatter.dateFormat = "dd 'de' MMM yyyy"
         
         let timeFormatter = DateFormatter()
         timeFormatter.locale = Locale(identifier: "es_ES")
         timeFormatter.dateFormat = "h:mm a"
         
-        var dict: [String: (month: String, payments: [Payment])] = [:]
+        // Estructura interna para ordenar cronológicamente
+        struct TempGroup {
+            let title: String
+            let month: String
+            let date: Date
+            var payments: [Payment]
+        }
+        
+        var dict: [String: TempGroup] = [:]
         
         for api in pagosAPI {
-            // Si la fecha falla, usamos la fecha actual como respaldo
-            let date = isoFormatter.date(from: api.fecha_pago) ?? Date()
+            let date = Self.parseDate(api.fecha_pago)
             
-            // Título del grupo (HOY o la fecha)
-            var title = "RECIENTE"
+            let title: String
             if Calendar.current.isDateInToday(date) {
                 title = "HOY"
+            } else if Calendar.current.isDateInYesterday(date) {
+                title = "AYER"
             } else {
                 title = dateTitleFormatter.string(from: date).uppercased()
             }
             
-            // Mes para el filtro
             let monthString = monthFormatter.string(from: date).capitalized
+            let storeName = api.fiado?.tienda?.nombre ?? "Tienda"
+            let conceptText = (api.notas?.isEmpty == false) ? api.notas! : "Abono a cuenta"
+            let methodText = api.metodo_pago.capitalized
+            let formattedAmount = "S/ \(String(format: "%.2f", api.monto))"
+            let timeText = timeFormatter.string(from: date)
+            let fullDateText = dateTitleFormatter.string(from: date)
             
-            // Convertimos al modelo visual Payment
             let payment = Payment(
-                store: api.fiado.tienda.nombre,
-                concept: api.notas ?? "Abono a fiado",
-                amount: "S/ \(String(format: "%.2f", api.monto))",
-                time: timeFormatter.string(from: date),
-                method: api.metodo_pago.capitalized
+                id: api.id,
+                store: storeName,
+                concept: conceptText,
+                amount: formattedAmount,
+                amountValue: api.monto,
+                time: timeText,
+                date: fullDateText,
+                method: methodText,
+                reference: api.referencia,
+                fiadoId: api.fiado?.id,
+                fiadoTotal: api.fiado?.monto_total,
+                fiadoEstado: api.fiado?.estado
             )
             
             if dict[title] == nil {
-                dict[title] = (monthString, [])
+                dict[title] = TempGroup(title: title, month: monthString, date: date, payments: [payment])
+            } else {
+                dict[title]?.payments.append(payment)
             }
-            dict[title]?.payments.append(payment)
         }
         
-        return dict.map { PaymentGroup(title: $0.key, month: $0.value.month, payments: $0.value.payments) }
-            .sorted { $0.title == "HOY" ? true : $1.title == "HOY" ? false : $0.title > $1.title }
+        return dict.values
+            .sorted { g1, g2 in
+                if g1.title == "HOY" { return true }
+                if g2.title == "HOY" { return false }
+                if g1.title == "AYER" { return true }
+                if g2.title == "AYER" { return false }
+                return g1.date > g2.date
+            }
+            .map { PaymentGroup(title: $0.title, month: $0.month, payments: $0.payments) }
     }
 
     // 2. Listas dinámicas para los filtros
@@ -77,7 +124,7 @@ struct PaymentsView: View {
     // 3. Aplicamos los filtros
     private var groups: [PaymentGroup] {
         allGroups
-            .filter { selectedMonth.isEmpty || $0.month == selectedMonth }
+            .filter { selectedMonth.isEmpty || $0.month.caseInsensitiveCompare(selectedMonth) == .orderedSame }
             .compactMap { group in
                 guard let selectedStore else { return group }
                 let payments = group.payments.filter { $0.store == selectedStore }
@@ -97,15 +144,37 @@ struct PaymentsView: View {
             if isLoading {
                 ProgressView("Cargando pagos...")
                     .frame(maxHeight: .infinity)
+            } else if pagosAPI.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "creditcard")
+                        .font(.system(size: 56))
+                        .foregroundStyle(Color.fiTextTertiary)
+                        .padding(.top, 60)
+                    Text("Aún no tienes pagos registrados")
+                        .font(.poppins(16, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                    Text("Tus abonos realizados en tienda aparecerán aquí.")
+                        .font(.poppins(13))
+                        .foregroundStyle(Color.fiTextSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+                .frame(maxHeight: .infinity)
             } else if groups.isEmpty {
                 VStack(spacing: 16) {
-                    Image(systemName: "creditcard.trianglebadge.exclamationmark")
-                        .font(.system(size: 60))
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                        .font(.system(size: 56))
                         .foregroundStyle(Color.fiTextTertiary)
                         .padding(.top, 60)
                     Text("No hay pagos con estos filtros")
                         .font(.poppins(16, .semibold))
                         .foregroundStyle(Color.fiTextPrimary)
+                    Button("Restablecer filtros") {
+                        selectedStore = nil
+                        selectedMonth = ""
+                    }
+                    .font(.poppins(14, .semibold))
+                    .foregroundStyle(Color.fiTeal)
                 }
                 .frame(maxHeight: .infinity)
             } else {
@@ -120,7 +189,7 @@ struct PaymentsView: View {
 
                             VStack(spacing: 0) {
                                 ForEach(group.payments) { payment in
-                                    Button { router.push(.paymentDetail) } label: {
+                                    Button { router.push(.paymentDetail(payment)) } label: {
                                         PaymentRowView(payment: payment)
                                     }
                                     .buttonStyle(.plain)
@@ -138,6 +207,9 @@ struct PaymentsView: View {
                     .padding(.top, 20)
                     .padding(.bottom, 24)
                 }
+                .refreshable {
+                    await loadPayments()
+                }
             }
         }
         .fiScreenBackground()
@@ -146,7 +218,7 @@ struct PaymentsView: View {
         }
     }
 
-    // 4. Filtros superiores (Ahora usan datos reales)
+    // 4. Filtros superiores
     private var filters: some View {
         HStack(spacing: 12) {
             Menu {
@@ -159,25 +231,21 @@ struct PaymentsView: View {
             }
 
             Menu {
+                Button("Todos los meses") { selectedMonth = "" }
                 ForEach(months, id: \.self) { month in
                     Button(month) { selectedMonth = month }
                 }
             } label: {
-                FilterPill(icon: "calendar", title: selectedMonth.isEmpty ? "Seleccionar mes" : selectedMonth)
+                FilterPill(icon: "calendar", title: selectedMonth.isEmpty ? "Todos los meses" : selectedMonth)
             }
         }
     }
     
-    // 5. Función para cargar los datos
+    // 5. Cargar los datos desde el servidor
     private func loadPayments() async {
         isLoading = true
         do {
             pagosAPI = try await PaymentService.shared.fetchMyPayments()
-            
-            // Asignar el primer mes disponible por defecto
-            if selectedMonth.isEmpty, let firstMonth = months.first {
-                selectedMonth = firstMonth
-            }
         } catch {
             print("Error al cargar pagos: \(error.localizedDescription)")
             pagosAPI = []
