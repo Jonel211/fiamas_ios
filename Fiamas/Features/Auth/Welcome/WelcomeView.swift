@@ -3,6 +3,7 @@ import SwiftUI
 struct WelcomeView: View {
     @Environment(AppRouter.self) private var router
     @State private var showWhatsAppSheet = false
+    @State private var isShowingScanner = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -105,9 +106,9 @@ struct WelcomeView: View {
                             
                             Spacer(minLength: 16)
                             
-                            // MARK: - Sección Escanear QR
+                            // MARK: - Sección Escanear QR Funcional
                             Button(action: {
-                                // Acción para escanear QR
+                                isShowingScanner = true
                             }) {
                                 VStack(spacing: 10) {
                                     Image(systemName: "qrcode.viewfinder")
@@ -119,6 +120,7 @@ struct WelcomeView: View {
                                         .foregroundColor(.white)
                                 }
                             }
+                            .buttonStyle(.plain)
                             
                             Spacer(minLength: 24)
                         }
@@ -134,6 +136,15 @@ struct WelcomeView: View {
             }
         }
         .ignoresSafeArea()
+        // Modal de escaneo de QR
+        .fullScreenCover(isPresented: $isShowingScanner) {
+            QRScannerSheet(
+                onNavigateToRegister: { _ in
+                    isShowingScanner = false
+                    router.push(.register)
+                }
+            )
+        }
         // Desplegable tipo Intent / Sheet para WhatsApp
         .confirmationDialog("Soporte por WhatsApp", isPresented: $showWhatsAppSheet, titleVisibility: .visible) {
             Button("Abrir WhatsApp") {
