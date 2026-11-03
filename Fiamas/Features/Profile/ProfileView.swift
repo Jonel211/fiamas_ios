@@ -102,7 +102,7 @@ struct ProfileView: View {
 
             HStack(spacing: 8) {
                 StatusBadge(text: "Teléfono verificado", icon: "checkmark.seal.fill")
-                StatusBadge(text: "Pagador bueno", icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
+                StatusBadge(text: store.category, icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
             }
             .padding(.top, 12)
         }

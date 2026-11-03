@@ -5,12 +5,11 @@ struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProfileStore.self) private var profileStore
 
-    // ESTADOS PARA LA CONEXIÓN CON EL SERVIDOR
+    // Datos del servidor
     @State private var fiadosAPI: [FiadoAPI] = []
+    @State private var clientScore: Int = 100
+    @State private var clientCategory: String = "Excelente pagador"
     @State private var isLoading = true
-    
-    // Ya no mostraremos el error crudo, solo mostraremos la lista vacía
-    // @State private var errorMessage: String? = nil
 
     private var mappedStores: [Store] {
         var dict: [String: Store] = [:]
@@ -68,8 +67,7 @@ struct HomeView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
                     } else {
-                        // Siempre mostramos la tarjeta, si hay error el total es 0.00
-                        TotalOwedCard(total: totalOwed, score: 92)
+                        TotalOwedCard(total: totalOwed, score: clientScore, category: clientCategory)
                             .padding(.bottom, 28)
 
                         SectionHeader(title: "Tiendas recientes", trailing: "\(mappedStores.count) tiendas")
@@ -99,6 +97,9 @@ struct HomeView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 24)
             }
+            .refreshable {
+                await loadData()
+            }
         }
         .fiScreenBackground()
         .task {
@@ -108,20 +109,53 @@ struct HomeView: View {
     
     private func loadData() async {
         isLoading = true
+        async let debtsTask = DebtsService.shared.fetchMyDebts()
+        async let summaryTask = SummaryService.shared.fetchMySummary()
+        
         do {
-            fiadosAPI = try await DebtsService.shared.fetchMyDebts()
+            fiadosAPI = try await debtsTask
         } catch {
             print("Error al cargar fiados: \(error.localizedDescription)")
             fiadosAPI = []
         }
+        
+        do {
+            let summary = try await summaryTask
+            clientScore = summary.score
+            clientCategory = Self.formatCategory(summary.category, score: summary.score)
+        } catch {
+            // Cálculo dinámico de respaldo según el estado real de fiados
+            let hasOverdue = fiadosAPI.contains { $0.estado.lowercased() == "vencido" }
+            if hasOverdue {
+                clientScore = 60
+                clientCategory = "Pagador regular"
+            } else if !fiadosAPI.isEmpty {
+                clientScore = 95
+                clientCategory = "Pagador bueno"
+            } else {
+                clientScore = 100
+                clientCategory = "Excelente pagador"
+            }
+        }
+        
+        profileStore.updateScoring(score: clientScore, category: clientCategory)
         isLoading = false
+    }
+
+    private static func formatCategory(_ rawCategory: String, score: Int) -> String {
+        let cat = rawCategory.lowercased()
+        if cat == "excelente" || score >= 90 { return "Excelente pagador" }
+        if cat == "bueno" || score >= 75 { return "Pagador bueno" }
+        if cat == "regular" || score >= 50 { return "Pagador regular" }
+        if cat == "moroso" || score < 50 { return "En mora" }
+        return "Nuevo cliente"
     }
 }
 
-// ... (Deja la struct TotalOwedCard exactamente igual que antes)
 private struct TotalOwedCard: View {
     let total: String
     let score: Int
+    let category: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -139,8 +173,12 @@ private struct TotalOwedCard: View {
                     Label("Score crediticio", systemImage: "chart.line.uptrend.xyaxis")
                         .font(.poppins(13, .medium))
                     Spacer()
-                    StatusBadge(text: "Pagador bueno", icon: "hand.thumbsup.fill",
-                                foreground: .fiTealDark, background: .white)
+                    StatusBadge(
+                        text: category,
+                        icon: score >= 90 ? "sparkles" : (score >= 50 ? "hand.thumbsup.fill" : "exclamationmark.triangle.fill"),
+                        foreground: score < 50 ? .fiDanger : .fiTealDark,
+                        background: .white
+                    )
                 }
                 .foregroundStyle(.white)
 
@@ -156,7 +194,9 @@ private struct TotalOwedCard: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.25))
-                        Capsule().fill(Color.fiGold).frame(width: geo.size.width * Double(score) / 100)
+                        Capsule()
+                            .fill(score >= 75 ? Color.fiGold : (score >= 50 ? Color.orange : Color.fiDanger))
+                            .frame(width: geo.size.width * min(max(Double(score), 0.0), 100.0) / 100.0)
                     }
                 }
                 .frame(height: 6)
