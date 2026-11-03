@@ -51,6 +51,18 @@ struct PaymentDetailView: View {
         payment?.fiadoEstado?.capitalized
     }
 
+    private var shareReceiptText: String {
+        """
+        🧾 Comprobante de Abono Fiamas
+        Tienda: \(displayStore)
+        Monto: \(displayAmount)
+        Fecha: \(displayDate) a las \(displayTime)
+        Método: \(displayMethod)
+        \(displayReference != nil ? "Referencia: \(displayReference!)" : "")
+        Estado: Pago Registrado
+        """
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             FiHeader(title: "Detalle del pago", leading: .back, trailingIcon: nil, onLeading: { router.pop() })
@@ -67,6 +79,8 @@ struct PaymentDetailView: View {
                                 .font(.poppins(13))
                                 .foregroundStyle(Color.fiTextSecondary)
                         }
+                        Spacer()
+                        StatusBadge(text: "Exitoso", icon: "checkmark")
                     }
                     .fiCard()
                     .padding(.bottom, 24)
@@ -92,10 +106,25 @@ struct PaymentDetailView: View {
                     .padding(.bottom, 24)
 
                     summary
+                        .padding(.bottom, 24)
+
+                    ShareLink(item: shareReceiptText) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text("Compartir comprobante")
+                                .font(.poppins(15, .semibold))
+                        }
+                        .foregroundStyle(Color.fiTealDark)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiTealSoft))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.fiTeal.opacity(0.3), lineWidth: 1))
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                .padding(.bottom, 24)
+                .padding(.bottom, 28)
             }
         }
         .fiScreenBackground()
@@ -124,7 +153,7 @@ struct PaymentDetailView: View {
                 .frame(height: 1)
 
             HStack {
-                Text("Total pagado en este abono")
+                Text("Total abonado")
                     .font(.poppins(15, .semibold))
                 Spacer()
                 Text(displayAmount)
