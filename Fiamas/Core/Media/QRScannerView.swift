@@ -15,6 +15,7 @@ struct QRScannerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: QRScannerViewController, context: Context) {
+        context.coordinator.parent = self
         uiViewController.setTorch(on: torchIsOn)
     }
 
@@ -23,7 +24,7 @@ struct QRScannerView: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, QRScannerViewControllerDelegate {
-        private let parent: QRScannerView
+        var parent: QRScannerView
 
         init(_ parent: QRScannerView) {
             self.parent = parent
@@ -51,6 +52,7 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var isSessionRunning = false
     private var hasFoundCode = false
+    private let simulatorCodeField = UITextField()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,9 +90,7 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
     private func setupCamera() {
         #if targetEnvironment(simulator)
         setupSimulatorFallback()
-        return
-        #endif
-
+        #else
         let session = AVCaptureSession()
         session.sessionPreset = .high
 
@@ -134,6 +134,7 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
 
         self.captureSession = session
         self.previewLayer = layer
+        #endif
     }
 
     private func startSession() {
@@ -179,15 +180,25 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
 
         let testButton = UIButton(type: .system)
         testButton.translatesAutoresizingMaskIntoConstraints = false
-        testButton.setTitle("Simular lectura de QR de Tienda", for: .normal)
+        testButton.setTitle("Usar código de tienda", for: .normal)
         testButton.backgroundColor = UIColor(red: 0.09, green: 0.58, blue: 0.55, alpha: 1.0)
         testButton.setTitleColor(.white, for: .normal)
         testButton.layer.cornerRadius = 10
         testButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .bold)
-        testButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16)
+        var buttonConfiguration = UIButton.Configuration.plain()
+        buttonConfiguration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
+        testButton.configuration = buttonConfiguration
         testButton.addTarget(self, action: #selector(didTapSimulateButton), for: .touchUpInside)
 
         view.addSubview(label)
+        simulatorCodeField.translatesAutoresizingMaskIntoConstraints = false
+        simulatorCodeField.placeholder = "Pega el enlace QR o token de la tienda"
+        simulatorCodeField.textColor = .black
+        simulatorCodeField.backgroundColor = .white
+        simulatorCodeField.borderStyle = .roundedRect
+        simulatorCodeField.autocapitalizationType = .none
+        simulatorCodeField.autocorrectionType = .no
+        view.addSubview(simulatorCodeField)
         view.addSubview(testButton)
 
         NSLayoutConstraint.activate([
@@ -196,15 +207,18 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
             label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
-            testButton.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 20),
+            simulatorCodeField.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 20),
+            simulatorCodeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            simulatorCodeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            testButton.topAnchor.constraint(equalTo: simulatorCodeField.bottomAnchor, constant: 12),
             testButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
 
     @objc private func didTapSimulateButton() {
-        guard !hasFoundCode else { return }
+        guard !hasFoundCode, let code = simulatorCodeField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !code.isEmpty else { return }
         hasFoundCode = true
-        delegate?.didFind(code: "https://fiamas.app/vincular-tienda?token=TIENDA-DEMO-01")
+        delegate?.didFind(code: code)
     }
 }
-

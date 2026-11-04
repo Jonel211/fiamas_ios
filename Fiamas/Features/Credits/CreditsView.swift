@@ -4,44 +4,39 @@ struct CreditsView: View {
     @Environment(AppRouter.self) private var router
     
     @State private var fiadosAPI: [FiadoAPI] = []
+    @State private var storeSummaries: [StoreSummary] = []
     @State private var isLoading = true
+    @State private var errorMessage: String?
     @State private var expanded: Set<String> = []
 
-    // TRADUCCIÓN: Convertimos los FiadoAPI en Store y Credit para tus componentes
     var mappedSections: [(store: Store, credits: [Credit])] {
-        var dict: [String: (storeName: String, fiados: [FiadoAPI])] = [:]
-        
-        // 1. Agrupamos por tienda
-        for fiado in fiadosAPI {
-            let tId = fiado.tienda?.id ?? "unknown"
-            let tName = fiado.tienda?.nombre ?? "Tienda Desconocida"
-            if dict[tId] == nil { dict[tId] = (tName, []) }
-            dict[tId]?.fiados.append(fiado)
-        }
-        
-        // 2. Convertimos a tus modelos visuales
-        return dict.map { (_, value) in
-            // Calculamos el total usado para la barra
-            let totalUsed = value.fiados.reduce(0) { $0 + Int($1.saldoPendiente) }
-            
+        storeSummaries.map { summary in
+            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
             let store = Store(
-                name: value.storeName,
-                description: "",
+                id: summary.tienda.id,
+                name: summary.tienda.nombre,
+                description: "\(fiados.count) fiados registrados",
                 date: "",
-                used: totalUsed,
-                limit: 1000 // Límite ficticio para la barra visual
+                used: summary.saldoActual,
+                limit: summary.limiteCredito
             )
-            
-            let credits = value.fiados.map { f in
-                // Corregimos el mapeo del estado: Si es "vencido" es rojo, si no, es pendiente (naranja)
-                let uiStatus: Credit.Status = (f.estado == "vencido") ? .overdue : .pending
-                
+            let credits = fiados.map { f in
+                let items = f.detalles.compactMap { detalle in
+                    detalle.producto.map { "\($0.nombre) x\(String(format: "%g", detalle.cantidad))" }
+                }.joined(separator: ", ")
+                let status: Credit.Status
+                if f.estado == "pagado" { status = .paid }
+                else if f.estado == "cancelado" { status = .cancelled }
+                else if (f.daysUntilDue ?? 0) < 0 { status = .overdue }
+                else if f.estado == "parcial" { status = .partial }
+                else { status = .pending }
                 return Credit(
+                    id: f.id,
                     amount: "S/ \(String(format: "%.2f", f.montoTotal))",
-                    items: "Fiado del " + String(f.fechaCreacion.prefix(10)),
-                    date: String(f.fechaCreacion.prefix(10)),
-                    status: uiStatus,
-                    footnote: "Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
+                    items: items.isEmpty ? "Fiado del \(f.fechaCreacion.prefix(10))" : items,
+                    date: f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? String(f.fechaCreacion.prefix(10)),
+                    status: status,
+                    footnote: "\(f.estado.capitalized) · Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
                 )
             }
             return (store, credits)
@@ -63,6 +58,11 @@ struct CreditsView: View {
                     if isLoading {
                         ProgressView("Cargando fiados...")
                             .padding(.top, 40)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .font(.poppins(14))
+                            .foregroundStyle(Color.fiDanger)
+                            .padding(.top, 40)
                     } else if mappedSections.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "doc.text.magnifyingglass")
@@ -75,18 +75,17 @@ struct CreditsView: View {
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        // Le pasamos los datos "traducidos" a tu componente original
                         ForEach(mappedSections, id: \.store.id) { section in
                             StoreCreditsSectionView(
                                 store: section.store,
                                 credits: section.credits,
-                                isExpanded: expanded.contains(section.store.name),
+                                isExpanded: expanded.contains(section.store.id),
                                 toggle: {
                                     withAnimation(.spring(duration: 0.3)) {
-                                        if expanded.contains(section.store.name) {
-                                            expanded.remove(section.store.name)
+                                        if expanded.contains(section.store.id) {
+                                            expanded.remove(section.store.id)
                                         } else {
-                                            expanded.insert(section.store.name)
+                                            expanded.insert(section.store.id)
                                         }
                                     }
                                 }
@@ -98,6 +97,7 @@ struct CreditsView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 24)
             }
+            .refreshable { await loadDebts() }
         }
         .fiScreenBackground()
         .task {
@@ -107,15 +107,18 @@ struct CreditsView: View {
     
     private func loadDebts() async {
         isLoading = true
+        errorMessage = nil
         do {
-            fiadosAPI = try await DebtsService.shared.fetchMyDebts()
+            async let debts = DebtsService.shared.fetchMyDebts()
+            async let summary = SummaryService.shared.fetchMySummary()
+            fiadosAPI = try await debts
+            storeSummaries = try await summary.stores
             // Expandimos la primera tienda por defecto
-            if let firstStore = mappedSections.first?.store.name {
+            if let firstStore = mappedSections.first?.store.id {
                 expanded.insert(firstStore)
             }
         } catch {
-            print("Error: \(error.localizedDescription)")
-            fiadosAPI = []
+            errorMessage = "No se pudieron cargar tus fiados: \(error.localizedDescription)"
         }
         isLoading = false
     }

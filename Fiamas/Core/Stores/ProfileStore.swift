@@ -8,8 +8,8 @@ final class ProfileStore {
     private(set) var photo: UIImage?
     var isUploading: Bool = false
     var errorMessage: String? = nil
-    var score: Int = 100
-    var category: String = "Excelente pagador"
+    var score: Int?
+    var category: String = "Sin historial"
 
     private let defaults: UserDefaults
     private let directory: URL
@@ -39,6 +39,8 @@ final class ProfileStore {
     /// Vuelve a leer el perfil y la foto del usuario actual.
     /// Llamar justo después de iniciar sesión y después de cerrar sesión.
     func reload() {
+        score = nil
+        category = "Sin historial"
         // 1. Perfil guardado de ESTE usuario
         if let data = defaults.data(forKey: profileKey),
            let saved = try? JSONDecoder().decode(UserProfile.self, from: data) {
@@ -54,16 +56,30 @@ final class ProfileStore {
         photo = UIImage(contentsOfFile: photoURL.path)
     }
 
-    func updateScoring(score: Int, category: String) {
+    func updateScoring(score: Int?, category: String) {
         self.score = score
         self.category = category
     }
 
-    func update(firstName: String, lastName: String) {
+    func update(firstName: String, lastName: String, phone: String? = nil) {
         profile.firstName = firstName.trimmingCharacters(in: .whitespaces)
         profile.lastName = lastName.trimmingCharacters(in: .whitespaces)
+        if let phone { profile.phone = phone }
         if let data = try? JSONEncoder().encode(profile) {
             defaults.set(data, forKey: profileKey)
+        }
+    }
+
+    @MainActor
+    func refreshFromBackend() async {
+        do {
+            let currentUser = currentUserID
+            guard currentUser != "guest" else { return }
+            let updated = try await ProfileService.shared.getProfile()
+            guard currentUserID == currentUser, updated.id == currentUser else { return }
+            update(firstName: updated.nombres, lastName: updated.apellidos, phone: updated.telefono)
+        } catch {
+            // Si no hay conexión, conservamos el último perfil guardado.
         }
     }
 

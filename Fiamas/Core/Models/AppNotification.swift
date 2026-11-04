@@ -5,7 +5,7 @@ struct AppNotification: Identifiable {
         case overdue, reminder, dueSoon
     }
 
-    let id = UUID()
+    var id = UUID().uuidString
     let kind: Kind
     let time: String
     let title: String
@@ -14,7 +14,7 @@ struct AppNotification: Identifiable {
 }
 
 struct NotificationGroup: Identifiable {
-    let id = UUID()
+    var id = UUID().uuidString
     let title: String
     var items: [AppNotification]
 }

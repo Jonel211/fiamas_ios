@@ -4,8 +4,14 @@ import SwiftUI
 struct NotificationsView: View {
     @Environment(AppRouter.self) private var router
 
-    @State private var groups = NotificationGroup.samples
+    @State private var groups: [NotificationGroup] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
     @State private var isConfirmingDelete = false
+
+    private var userKey: String { UserDefaults.standard.string(forKey: "user_id") ?? "guest" }
+    private var readKey: String { "readReminders_\(userKey)" }
+    private var deletedKey: String { "deletedReminders_\(userKey)" }
 
     private var unreadCount: Int {
         groups.flatMap(\.items).filter(\.unread).count
@@ -21,7 +27,15 @@ struct NotificationsView: View {
                 onTrailing: { isConfirmingDelete = true }
             )
 
-            if groups.isEmpty {
+            if isLoading {
+                ProgressView("Cargando avisos...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let errorMessage {
+                Text(errorMessage)
+                    .font(.poppins(14))
+                    .foregroundStyle(Color.fiDanger)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if groups.isEmpty {
                 emptyState
             } else {
                 list
@@ -29,8 +43,12 @@ struct NotificationsView: View {
         }
         .background(Color.white.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task { await loadReminders() }
         .confirmationDialog("¿Eliminar todas las notificaciones?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
             Button("Eliminar todas", role: .destructive) {
+                var deleted = Set(UserDefaults.standard.stringArray(forKey: deletedKey) ?? [])
+                deleted.formUnion(groups.flatMap(\.items).map(\.id))
+                UserDefaults.standard.set(Array(deleted), forKey: deletedKey)
                 withAnimation { groups.removeAll() }
             }
         }
@@ -66,6 +84,9 @@ struct NotificationsView: View {
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 withAnimation(.easeOut(duration: 0.2)) { item.unread = false }
+                                var read = Set(UserDefaults.standard.stringArray(forKey: readKey) ?? [])
+                                read.insert(item.id)
+                                UserDefaults.standard.set(Array(read), forKey: readKey)
                             }
 
                         if item.id != group.items.last?.id {
@@ -77,6 +98,7 @@ struct NotificationsView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
+        .refreshable { await loadReminders() }
     }
 
     private var emptyState: some View {
@@ -92,11 +114,44 @@ struct NotificationsView: View {
     }
 
     private func markAllRead() {
+        var read = Set(UserDefaults.standard.stringArray(forKey: readKey) ?? [])
         withAnimation(.easeOut(duration: 0.2)) {
             for g in groups.indices {
-                for i in groups[g].items.indices { groups[g].items[i].unread = false }
+                for i in groups[g].items.indices {
+                    read.insert(groups[g].items[i].id)
+                    groups[g].items[i].unread = false
+                }
             }
         }
+        UserDefaults.standard.set(Array(read), forKey: readKey)
+    }
+
+    private func loadReminders() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let fiados = try await DebtsService.shared.fetchMyDebts()
+            let read = Set(UserDefaults.standard.stringArray(forKey: readKey) ?? [])
+            let deleted = Set(UserDefaults.standard.stringArray(forKey: deletedKey) ?? [])
+            let items: [AppNotification] = fiados.compactMap { fiado in
+                guard let days = fiado.daysUntilDue, days <= 2 else { return nil }
+                let id = "\(fiado.id)-\(fiado.fechaVencimiento ?? "")-\(days < 0 ? "mora" : String(days))"
+                guard !deleted.contains(id) else { return nil }
+                let title = days < 0 ? "Pago vencido" : days == 0 ? "Tu fiado vence hoy"
+                    : days == 1 ? "Tu fiado vence mañana" : "Tu fiado vence en 2 días"
+                let message = "\(fiado.tienda?.nombre ?? "Tu tienda"): saldo pendiente S/ \(String(format: "%.2f", fiado.saldoPendiente)). Vence el \(fiado.fechaVencimiento?.prefix(10) ?? "")."
+                return AppNotification(
+                    id: id, kind: days < 0 ? .overdue : .dueSoon,
+                    time: days < 0 ? "Vencido" : days == 0 ? "Hoy" : days == 1 ? "1 día" : "2 días",
+                    title: title,
+                    message: message, unread: !read.contains(id)
+                )
+            }
+            groups = items.isEmpty ? [] : [NotificationGroup(title: "Avisos de tus fiados", items: items)]
+        } catch {
+            errorMessage = "No se pudieron cargar los avisos: \(error.localizedDescription)"
+        }
+        isLoading = false
     }
 }
 

@@ -18,6 +18,9 @@ struct CreditCardView: View {
                 switch credit.status {
                 case .overdue: StatusBadge.overdue
                 case .pending: StatusBadge.pending
+                case .partial: StatusBadge(text: "Pago parcial", foreground: .fiWarning, background: .fiWarningSoft)
+                case .paid: StatusBadge(text: "Pagado")
+                case .cancelled: StatusBadge(text: "Cancelado", foreground: .fiTextSecondary, background: .fiDivider)
                 }
             }
 

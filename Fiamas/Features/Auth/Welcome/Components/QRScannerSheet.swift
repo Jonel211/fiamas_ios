@@ -11,6 +11,8 @@ struct QRScannerSheet: View {
     @State private var cameraPermission: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var laserOffset: CGFloat = -110
     @State private var showCopiedAlert = false
+    @State private var scanAttempt = 0
+    @State private var scanError: String?
 
     var body: some View {
         ZStack {
@@ -26,9 +28,10 @@ struct QRScannerSheet: View {
                         handleScannedCode(code)
                     },
                     onError: { err in
-                        print("Scanner error: \(err)")
+                        scanError = err
                     }
                 )
+                .id(scanAttempt)
                 .ignoresSafeArea()
 
                 // Overlay con recuadro y máscara oscura
@@ -46,6 +49,15 @@ struct QRScannerSheet: View {
             // Modal inferior con el resultado escaneado
             if let code = scannedCode {
                 scannedResultCard(code: code)
+            }
+
+            if let scanError {
+                Text(scanError)
+                    .font(.poppins(14))
+                    .foregroundStyle(.white)
+                    .padding(16)
+                    .background(Color.fiDanger)
+                    .padding(.horizontal, 20)
             }
         }
         .onAppear {
@@ -141,7 +153,7 @@ struct QRScannerSheet: View {
                         Text("¡Código detectado!")
                             .font(.poppins(16, .semibold))
                             .foregroundStyle(Color.fiTextPrimary)
-                        Text("Tienda vinculada correctamente")
+                        Text("Código de tienda detectado")
                             .font(.poppins(12))
                             .foregroundStyle(Color.fiTextSecondary)
                     }
@@ -176,6 +188,8 @@ struct QRScannerSheet: View {
 
                     Button {
                         scannedCode = nil
+                        scanError = nil
+                        scanAttempt += 1
                         startLaserAnimation()
                     } label: {
                         Text("Escanear otro código")
@@ -249,6 +263,20 @@ struct QRScannerSheet: View {
     }
 
     private func handleScannedCode(_ code: String) {
+        let token: String
+        if let url = URLComponents(string: code), url.scheme == "https",
+           url.path == "/vincular-tienda",
+           let value = url.queryItems?.first(where: { $0.name == "token" })?.value {
+            token = value
+        } else {
+            token = code
+        }
+        guard UUID(uuidString: token) != nil else {
+            scanError = "Este QR no es un código de tienda de Fiamas. Intenta con otro."
+            scanAttempt += 1
+            return
+        }
+        scanError = nil
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             self.scannedCode = code
         }
@@ -265,4 +293,3 @@ struct QRScannerSheet: View {
 #Preview {
     QRScannerSheet()
 }
-

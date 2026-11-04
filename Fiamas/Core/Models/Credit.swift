@@ -1,9 +1,9 @@
 import Foundation
 
 struct Credit: Identifiable {
-    enum Status { case overdue, pending }
+    enum Status { case overdue, pending, partial, paid, cancelled }
 
-    let id = UUID()
+    var id = UUID().uuidString
     let amount: String
     let items: String
     let date: String

@@ -1,10 +1,12 @@
 import Foundation
+import UserNotifications
 
 struct PreRegistroResponse: Decodable {
     let encontrado: Bool
     let yaRegistrado: Bool?
     let nombres: String?
     let apellidos: String?
+    let direccion: String?
 }
 
 struct RegistroClienteResponse: Decodable {
@@ -58,12 +60,19 @@ class AuthService {
         )
     }
     
-    // Activa la cuenta del cliente creada por el tendero (solo celular + contraseña)
-    func registro(telefono: String, password: String) async throws {
-        let body: [String: Any] = [
+    // Sin QR activa la cuenta pre-registrada; con QR registra y vincula a la tienda.
+    func registro(telefono: String, password: String, direccion: String, nombres: String? = nil, apellidos: String? = nil, qrCode: String? = nil) async throws {
+        var body: [String: Any] = [
             "telefono": telefono,
-            "password": password
+            "password": password,
+            "direccion": direccion.trimmingCharacters(in: .whitespacesAndNewlines)
         ]
+        if let qrCode {
+            let token = URLComponents(string: qrCode)?.queryItems?.first(where: { $0.name == "token" })?.value ?? qrCode
+            body["nombres"] = nombres?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            body["apellidos"] = apellidos?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            body["token"] = token
+        }
         
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         
@@ -76,6 +85,12 @@ class AuthService {
     }
     
     func logout() {
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let ids = await center.pendingNotificationRequests().map(\.identifier)
+                .filter { $0.hasPrefix("fiamas-fiado-") }
+            center.removePendingNotificationRequests(withIdentifiers: ids)
+        }
         UserDefaults.standard.removeObject(forKey: "auth_token")
         UserDefaults.standard.removeObject(forKey: "user_id")
         UserDefaults.standard.removeObject(forKey: "user_rol")
