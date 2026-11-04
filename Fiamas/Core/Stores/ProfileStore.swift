@@ -7,6 +7,8 @@ final class ProfileStore {
     private(set) var photo: UIImage?
     var isUploading: Bool = false
     var errorMessage: String? = nil
+    var score: Int = 100
+    var category: String = "Excelente pagador"
 
     private let defaults: UserDefaults
     private let photoURL: URL
@@ -37,6 +39,11 @@ final class ProfileStore {
             }
         }
         photo = UIImage(contentsOfFile: photoURL.path)
+    }
+
+    func updateScoring(score: Int, category: String) {
+        self.score = score
+        self.category = category
     }
 
     func update(firstName: String, lastName: String) {

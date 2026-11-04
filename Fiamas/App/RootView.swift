@@ -37,11 +37,10 @@ struct RootView: View {
             case .newPassword: NewPasswordView()
             case .menu: MenuView()
             case .notifications: NotificationsView()
-            case .paymentDetail: PaymentDetailView()
+            case .paymentDetail(let payment): PaymentDetailView(payment: payment)
             case .changePassword: ChangePasswordView()
             case .editProfile: EditProfileView()
             case .help: HelpView()
-            case .complaints: ComplaintsView()
             }
         }
         .toolbar(.hidden, for: .navigationBar)

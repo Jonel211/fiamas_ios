@@ -52,14 +52,6 @@ struct ProfileView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .fiCard(padding: 0)
-                    .padding(.bottom, 24)
-
-                    GroupLabel(title: "Seguridad")
-                        .padding(.bottom, 8)
-                    row(icon: "lock", title: "Cambiar contraseña", value: nil) {
-                        router.push(.changePassword)
-                    }
-                    .fiCard(padding: 0)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -110,7 +102,7 @@ struct ProfileView: View {
 
             HStack(spacing: 8) {
                 StatusBadge(text: "Teléfono verificado", icon: "checkmark.seal.fill")
-                StatusBadge(text: "Pagador bueno", icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
+                StatusBadge(text: store.category, icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
             }
             .padding(.top, 12)
         }

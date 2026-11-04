@@ -125,4 +125,5 @@ struct RegisterView: View {
 }
 
 #Preview {
-    NavigationStack { RegisterView() }.environment(A
+    NavigationStack { RegisterView() }.environment(AppRouter())
+}

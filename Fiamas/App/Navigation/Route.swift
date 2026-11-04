@@ -13,9 +13,12 @@ enum Route: Hashable {
     // App
     case menu
     case notifications
-    case paymentDetail
+    case paymentDetail(Payment?)
     case changePassword
     case editProfile
     case help
-    case complaints
+    
+    static var paymentDetail: Route {
+        .paymentDetail(nil)
+    }
 }

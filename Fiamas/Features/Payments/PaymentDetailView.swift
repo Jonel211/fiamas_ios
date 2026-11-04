@@ -3,13 +3,65 @@ import SwiftUI
 /// iOS-detalle-pago
 struct PaymentDetailView: View {
     @Environment(AppRouter.self) private var router
+    let payment: Payment?
 
-    private let items: [(name: String, amount: String)] = [
-        ("Pan", "S/ 50.00"),
-        ("Arroz", "S/ 80.00"),
-        ("Aceite", "S/ 90.00"),
-        ("Leche evaporada x6", "S/ 50.00"),
-    ]
+    init(payment: Payment? = nil) {
+        self.payment = payment
+    }
+
+    private var displayStore: String {
+        payment?.store ?? "Bodega Don Pepe"
+    }
+
+    private var displayConcept: String {
+        payment?.concept ?? "Abono Víveres"
+    }
+
+    private var displayAmount: String {
+        payment?.amount ?? "S/ 50.00"
+    }
+
+    private var displayTime: String {
+        payment?.time ?? "4:15 pm"
+    }
+
+    private var displayDate: String {
+        if let p = payment, !p.date.isEmpty {
+            return p.date
+        }
+        return "06 de sep 2026"
+    }
+
+    private var displayMethod: String {
+        payment?.method ?? "Efectivo"
+    }
+
+    private var displayReference: String? {
+        payment?.reference
+    }
+
+    private var displayFiadoTotal: String? {
+        if let total = payment?.fiadoTotal {
+            return "S/ \(String(format: "%.2f", total))"
+        }
+        return nil
+    }
+
+    private var displayFiadoEstado: String? {
+        payment?.fiadoEstado?.capitalized
+    }
+
+    private var shareReceiptText: String {
+        """
+        🧾 Comprobante de Abono Fiamas
+        Tienda: \(displayStore)
+        Monto: \(displayAmount)
+        Fecha: \(displayDate) a las \(displayTime)
+        Método: \(displayMethod)
+        \(displayReference != nil ? "Referencia: \(displayReference!)" : "")
+        Estado: Pago Registrado
+        """
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,46 +75,56 @@ struct PaymentDetailView: View {
                             Text("Pago registrado")
                                 .font(.poppins(17, .semibold))
                                 .foregroundStyle(Color.fiTextPrimary)
-                            Text("06 de sep 2026 · 4:15 pm · Efectivo")
+                            Text("\(displayDate) · \(displayTime) · \(displayMethod)")
                                 .font(.poppins(13))
                                 .foregroundStyle(Color.fiTextSecondary)
                         }
+                        Spacer()
+                        StatusBadge(text: "Exitoso", icon: "checkmark")
                     }
                     .fiCard()
                     .padding(.bottom, 24)
 
-                    GroupLabel(title: "Productos")
+                    GroupLabel(title: "Información del pago")
                         .padding(.bottom, 8)
 
                     VStack(spacing: 0) {
-                        ForEach(items, id: \.name) { item in
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(item.name)
-                                        .font(.poppins(15, .semibold))
-                                        .foregroundStyle(Color.fiTextPrimary)
-                                    StatusBadge(text: "Abono víveres", foreground: .fiWarning, background: .fiGoldSoft)
-                                }
-                                Spacer()
-                                Text(item.amount)
-                                    .font(.poppins(15, .semibold))
-                                    .foregroundStyle(Color.fiTextPrimary)
-                            }
-                            .padding(16)
-
-                            if item.name != items.last?.name {
-                                FiDivider(leadingInset: 16)
-                            }
+                        detailRow(title: "Tienda", value: displayStore, icon: "storefront")
+                        FiDivider(leadingInset: 16)
+                        detailRow(title: "Concepto / Detalle", value: displayConcept, icon: "doc.text")
+                        FiDivider(leadingInset: 16)
+                        detailRow(title: "Monto abonado", value: displayAmount, icon: "banknote", valueColor: .fiTeal, isBold: true)
+                        FiDivider(leadingInset: 16)
+                        detailRow(title: "Método de pago", value: displayMethod, icon: "creditcard")
+                        
+                        if let ref = displayReference, !ref.isEmpty {
+                            FiDivider(leadingInset: 16)
+                            detailRow(title: "Nº de referencia", value: ref, icon: "number")
                         }
                     }
                     .fiCard(padding: 0)
                     .padding(.bottom, 24)
 
                     summary
+                        .padding(.bottom, 24)
+
+                    ShareLink(item: shareReceiptText) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 15, weight: .semibold))
+                            Text("Compartir comprobante")
+                                .font(.poppins(15, .semibold))
+                        }
+                        .foregroundStyle(Color.fiTealDark)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiTealSoft))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.fiTeal.opacity(0.3), lineWidth: 1))
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                .padding(.bottom, 24)
+                .padding(.bottom, 28)
             }
         }
         .fiScreenBackground()
@@ -76,18 +138,25 @@ struct PaymentDetailView: View {
                 .foregroundStyle(Color.fiTealDark)
                 .padding(.bottom, 2)
 
-            summaryRow("Total deuda original", "S/ 270.00")
-            summaryRow("Total pagado", "S/ 270.00")
+            if let total = displayFiadoTotal {
+                summaryRow("Total fiado relacionado", total)
+            }
+            
+            if let estado = displayFiadoEstado {
+                summaryRow("Estado del fiado", estado)
+            }
+
+            summaryRow("Abono aplicado", displayAmount)
 
             Rectangle()
                 .fill(Color.fiTeal.opacity(0.25))
                 .frame(height: 1)
 
             HStack {
-                Text("Deuda restante")
+                Text("Total abonado")
                     .font(.poppins(15, .semibold))
                 Spacer()
-                Text("S/ 0.00")
+                Text(displayAmount)
                     .font(.poppins(20, .bold))
                     .foregroundStyle(Color.fiTeal)
             }
@@ -107,6 +176,26 @@ struct PaymentDetailView: View {
                 .foregroundStyle(Color.fiTextPrimary)
         }
         .font(.poppins(14))
+    }
+
+    private func detailRow(title: String, value: String, icon: String, valueColor: Color = .fiTextPrimary, isBold: Bool = false) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.fiTeal)
+                .frame(width: 24)
+
+            Text(title)
+                .font(.poppins(14))
+                .foregroundStyle(Color.fiTextSecondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.poppins(14, isBold ? .bold : .medium))
+                .foregroundStyle(valueColor)
+        }
+        .padding(16)
     }
 }
 
