@@ -3,10 +3,10 @@ import SwiftUI
 /// iOS-login-cliente
 struct LoginView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(ProfileStore.self) private var profileStore
     @State private var phone = ""
     @State private var password = ""
     
-    // NUEVAS VARIABLES DE ESTADO
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
 
@@ -26,7 +26,6 @@ struct LoginView: View {
                             icon: "lock", isSecure: true, contentType: .password)
             }
 
-            // NUEVO: Mostrar mensaje de error si falla el login
             if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .font(.poppins(12, .regular))
@@ -46,7 +45,6 @@ struct LoginView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
             .padding(.top, 14)
 
-            // NUEVO: Conectamos el botón al Backend
             FiButton(title: isLoading ? "Ingresando..." : "Ver mi cuenta", isEnabled: canSubmit) {
                 Task {
                     await performLogin()
@@ -62,7 +60,6 @@ struct LoginView: View {
         }
     }
     
-    // NUEVA FUNCIÓN PARA HACER LA PETICIÓN AL BACKEND
     private func performLogin() async {
         isLoading = true
         errorMessage = nil
@@ -71,7 +68,6 @@ struct LoginView: View {
         let cleanPhone = phone.filter(\.isNumber)
         
         do {
-            // Llamamos a nuestro AuthService
             let response = try await AuthService.shared.login(
                 identificador: cleanPhone,
                 password: password,
@@ -80,11 +76,12 @@ struct LoginView: View {
             
             print("Login exitoso para: \(response.usuario.nombre)")
             
-            // Si todo sale bien, entramos a la app
+            // Recarga el perfil con los datos del usuario que acaba de entrar
+            profileStore.reload()
+            
             router.enterApp()
             
         } catch {
-            // Si hay un error (contraseña mal, servidor caído, etc.), lo mostramos
             withAnimation {
                 errorMessage = error.localizedDescription
             }
@@ -95,5 +92,7 @@ struct LoginView: View {
 }
 
 #Preview {
-    NavigationStack { LoginView() }.environment(AppRouter())
+    NavigationStack { LoginView() }
+        .environment(AppRouter())
+        .environment(ProfileStore())
 }
