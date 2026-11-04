@@ -7,47 +7,33 @@ struct HomeView: View {
 
     // Datos del servidor
     @State private var fiadosAPI: [FiadoAPI] = []
-    @State private var clientScore: Int = 100
-    @State private var clientCategory: String = "Excelente pagador"
+    @State private var storeSummaries: [StoreSummary] = []
+    @State private var clientScore: Int?
+    @State private var clientCategory: String = "Sin historial"
+    @State private var totalOwed: Double = 0
+    @State private var errorMessage: String?
     @State private var isLoading = true
 
     private var mappedStores: [Store] {
-        var dict: [String: Store] = [:]
-        for fiado in fiadosAPI {
-            if let tienda = fiado.tienda {
-                if let existing = dict[tienda.id] {
-                    let newUsed = existing.used + Int(fiado.saldoPendiente)
-                    dict[tienda.id] = Store(
-                        name: existing.name,
-                        description: existing.description,
-                        date: existing.date,
-                        used: newUsed,
-                        limit: existing.limit
-                    )
-                } else {
-                    dict[tienda.id] = Store(
-                        name: tienda.nombre,
-                        description: "Fiado pendiente",
-                        date: String(fiado.fechaCreacion.prefix(10)),
-                        used: Int(fiado.saldoPendiente),
-                        limit: 1000
-                    )
-                }
-            }
+        storeSummaries.map { summary in
+            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
+            return Store(
+                id: summary.tienda.id,
+                name: summary.tienda.nombre,
+                description: "\(fiados.count) fiados registrados",
+                date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
+                used: summary.saldoActual,
+                limit: summary.limiteCredito
+            )
         }
-        return Array(dict.values)
-    }
-
-    private var totalOwed: String {
-        let total = fiadosAPI.map(\.saldoPendiente).reduce(0, +)
-        return String(format: "%.2f", total)
+        .sorted { $0.name < $1.name }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             FiHeader(
                 title: "Bienvenido",
-                trailingBadge: true,
+                trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
@@ -66,8 +52,13 @@ struct HomeView: View {
                         ProgressView("Cargando...")
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .font(.poppins(14))
+                            .foregroundStyle(Color.fiDanger)
+                            .padding(.top, 24)
                     } else {
-                        TotalOwedCard(total: totalOwed, score: clientScore, category: clientCategory)
+                        TotalOwedCard(total: String(format: "%.2f", totalOwed), score: clientScore, category: clientCategory)
                             .padding(.bottom, 28)
 
                         SectionHeader(title: "Tiendas recientes", trailing: "\(mappedStores.count) tiendas")
@@ -109,52 +100,28 @@ struct HomeView: View {
     
     private func loadData() async {
         isLoading = true
+        errorMessage = nil
         async let debtsTask = DebtsService.shared.fetchMyDebts()
         async let summaryTask = SummaryService.shared.fetchMySummary()
-        
         do {
             fiadosAPI = try await debtsTask
-        } catch {
-            print("Error al cargar fiados: \(error.localizedDescription)")
-            fiadosAPI = []
-        }
-        
-        do {
             let summary = try await summaryTask
+            storeSummaries = summary.stores
+            totalOwed = summary.totalOwed
             clientScore = summary.score
-            clientCategory = Self.formatCategory(summary.category, score: summary.score)
+            clientCategory = summary.category
+            profileStore.updateScoring(score: clientScore, category: clientCategory)
+            await ReminderScheduler.sync(fiadosAPI)
         } catch {
-            // Cálculo dinámico de respaldo según el estado real de fiados
-            let hasOverdue = fiadosAPI.contains { $0.estado.lowercased() == "vencido" }
-            if hasOverdue {
-                clientScore = 60
-                clientCategory = "Pagador regular"
-            } else if !fiadosAPI.isEmpty {
-                clientScore = 95
-                clientCategory = "Pagador bueno"
-            } else {
-                clientScore = 100
-                clientCategory = "Excelente pagador"
-            }
+            errorMessage = "No se pudo cargar tu resumen: \(error.localizedDescription)"
         }
-        
-        profileStore.updateScoring(score: clientScore, category: clientCategory)
         isLoading = false
-    }
-
-    private static func formatCategory(_ rawCategory: String, score: Int) -> String {
-        let cat = rawCategory.lowercased()
-        if cat == "excelente" || score >= 90 { return "Excelente pagador" }
-        if cat == "bueno" || score >= 75 { return "Pagador bueno" }
-        if cat == "regular" || score >= 50 { return "Pagador regular" }
-        if cat == "moroso" || score < 50 { return "En mora" }
-        return "Nuevo cliente"
     }
 }
 
 private struct TotalOwedCard: View {
     let total: String
-    let score: Int
+    let score: Int?
     let category: String
 
     var body: some View {
@@ -175,15 +142,15 @@ private struct TotalOwedCard: View {
                     Spacer()
                     StatusBadge(
                         text: category,
-                        icon: score >= 90 ? "sparkles" : (score >= 50 ? "hand.thumbsup.fill" : "exclamationmark.triangle.fill"),
-                        foreground: score < 50 ? .fiDanger : .fiTealDark,
+                        icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
+                        foreground: (score ?? 100) < 50 ? .fiDanger : .fiTealDark,
                         background: .white
                     )
                 }
                 .foregroundStyle(.white)
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text("\(score)")
+                    Text(score.map(String.init) ?? "—")
                         .font(.poppins(24, .semibold))
                     Text("/100")
                         .font(.poppins(13))
@@ -195,8 +162,8 @@ private struct TotalOwedCard: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.25))
                         Capsule()
-                            .fill(score >= 75 ? Color.fiGold : (score >= 50 ? Color.orange : Color.fiDanger))
-                            .frame(width: geo.size.width * min(max(Double(score), 0.0), 100.0) / 100.0)
+                            .fill((score ?? 0) >= 75 ? Color.fiGold : ((score ?? 0) >= 50 ? Color.orange : Color.fiDanger))
+                            .frame(width: geo.size.width * Double(min(max(score ?? 0, 0), 100)) / 100.0)
                     }
                 }
                 .frame(height: 6)

@@ -15,10 +15,6 @@ struct ClientProfileData: Codable {
     let direccion: String?
     let fotoPerfilUrl: String?
     
-    enum CodingKeys: String, CodingKey {
-        case id, telefono, nombres, apellidos, direccion
-        case fotoPerfilUrl = "foto_perfil_url"
-    }
 }
 
 // Modelo para respuestas genéricas con mensaje
@@ -35,6 +31,13 @@ struct UploadAvatarResponse: Codable {
 class ProfileService {
     static let shared = ProfileService()
     private init() {}
+
+    func getProfile() async throws -> ClientProfileData {
+        let response: ClientProfileResponse = try await APIClient.shared.request(
+            endpoint: "/app-cliente/mi-perfil"
+        )
+        return response.cliente
+    }
     
     /// Actualiza nombres, apellidos y dirección del cliente
     func updateProfile(nombres: String, apellidos: String, direccion: String? = nil) async throws -> ClientProfileData {

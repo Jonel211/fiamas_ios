@@ -76,6 +76,7 @@ struct MenuView: View {
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("¿Quieres cerrar sesión?", isPresented: $isConfirmingLogout, titleVisibility: .visible) {
             Button("Cerrar sesión", role: .destructive) {
+                AuthService.shared.logout()
                 router.logout()
                 profileStore.reload()
             }

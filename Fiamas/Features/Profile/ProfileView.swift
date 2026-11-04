@@ -71,6 +71,12 @@ struct ProfileView: View {
                 store.setPhoto(nil)
             }
         )
+        .task {
+            await store.refreshFromBackend()
+            if let summary = try? await SummaryService.shared.fetchMySummary() {
+                store.updateScoring(score: summary.score, category: summary.category)
+            }
+        }
     }
 
     private var profileCard: some View {

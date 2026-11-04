@@ -21,14 +21,14 @@ struct EditProfileView: View {
     }
 
     private var isValid: Bool {
-        !firstName.trimmingCharacters(in: .whitespaces).isEmpty
-            && !lastName.trimmingCharacters(in: .whitespaces).isEmpty
+        (1...100).contains(firstName.trimmingCharacters(in: .whitespacesAndNewlines).count)
+            && (1...100).contains(lastName.trimmingCharacters(in: .whitespacesAndNewlines).count)
     }
 
     private var hasChanges: Bool {
         didChangePhoto
-            || firstName.trimmingCharacters(in: .whitespaces) != store.profile.firstName
-            || lastName.trimmingCharacters(in: .whitespaces) != store.profile.lastName
+            || firstName.trimmingCharacters(in: .whitespacesAndNewlines) != store.profile.firstName
+            || lastName.trimmingCharacters(in: .whitespacesAndNewlines) != store.profile.lastName
     }
 
     var body: some View {
@@ -139,10 +139,10 @@ struct EditProfileView: View {
         errorMessage = nil
         
         do {
-            // 1. Llamamos al endpoint PUT /api/clientes/:id (en el ProfileService)
+            // Guardamos los nombres y apellidos en el perfil del usuario autenticado.
             let updated = try await ProfileService.shared.updateProfile(
-                nombres: firstName,
-                apellidos: lastName
+                nombres: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+                apellidos: lastName.trimmingCharacters(in: .whitespacesAndNewlines)
             )
             
             // 2. Actualizamos el Store local con los datos reales que confirmó el servidor

@@ -29,7 +29,7 @@ struct RootView: View {
         Group {
             switch route {
             case .welcome: WelcomeView()
-            case .register: RegisterView()
+            case .register(let qrCode): RegisterView(qrCode: qrCode)
             case .login: LoginView()
             case .phoneVerification: PhoneVerificationView()
             case .recoverPassword: RecoverPasswordView()

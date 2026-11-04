@@ -2,10 +2,10 @@ import SwiftUI
 
 /// Crédito usado frente al límite, con barra de progreso.
 struct CreditUsageBar: View {
-    let used: Int
-    let limit: Int
+    let used: Double
+    let limit: Double
 
-    private var ratio: Double { min(1, Double(used) / Double(max(limit, 1))) }
+    private var ratio: Double { min(1, max(0, used / max(limit, 1))) }
 
     private var barColor: Color {
         switch ratio {
@@ -18,8 +18,8 @@ struct CreditUsageBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                (Text("S/ \(used)").font(.poppins(13, .semibold)).foregroundColor(.fiTextPrimary)
-                 + Text("  de S/ \(limit)").font(.poppins(13)).foregroundColor(.fiTextSecondary))
+                (Text(String(format: "S/ %.2f", used)).font(.poppins(13, .semibold)).foregroundColor(.fiTextPrimary)
+                 + Text(String(format: "  de S/ %.2f", limit)).font(.poppins(13)).foregroundColor(.fiTextSecondary))
                 Spacer()
                 Text("\(Int(ratio * 100))% usado")
                     .font(.poppins(12, .medium))

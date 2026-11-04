@@ -3,7 +3,7 @@ import Foundation
 enum Route: Hashable {
     // Autenticación
     case welcome
-    case register
+    case register(qrCode: String?)
     case login
     case phoneVerification
     case recoverPassword

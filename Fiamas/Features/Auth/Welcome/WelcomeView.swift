@@ -91,7 +91,7 @@ struct WelcomeView: View {
                             
                             // Botón: Regístrate
                             Button(action: {
-                                router.push(.register)
+                                router.push(.register(qrCode: nil))
                             }) {
                                 Text("Registrate")
                                     .font(.headline)
@@ -139,9 +139,9 @@ struct WelcomeView: View {
         // Modal de escaneo de QR
         .fullScreenCover(isPresented: $isShowingScanner) {
             QRScannerSheet(
-                onNavigateToRegister: { _ in
+                onNavigateToRegister: { code in
                     isShowingScanner = false
-                    router.push(.register)
+                    router.push(.register(qrCode: code))
                 }
             )
         }

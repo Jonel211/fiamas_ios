@@ -59,6 +59,9 @@ class APIClient {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
+            if httpResponse.statusCode == 429 {
+                throw APIError.serverError("Demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.")
+            }
             if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let errorMessage = errorDict["error"] as? String {
                 throw APIError.serverError(errorMessage)
