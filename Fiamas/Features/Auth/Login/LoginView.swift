@@ -10,8 +10,9 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
 
+    // Habilita el botón solo cuando hay exactamente 9 dígitos de teléfono y 6 caracteres de contraseña/PIN
     private var canSubmit: Bool {
-        phone.filter(\.isNumber).count >= 9 && !password.isEmpty && !isLoading
+        phone.count == 9 && password.count == 6 && !isLoading
     }
 
     var body: some View {
@@ -20,10 +21,26 @@ struct LoginView: View {
                 .padding(.bottom, 28)
 
             VStack(spacing: 16) {
+                // Campo Teléfono: Solo permite ingresar números y máximo 9 dígitos
                 FiTextField(label: "Teléfono", text: $phone, placeholder: "999 999 999",
                             icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
-                FiTextField(label: "Contraseña", text: $password, placeholder: "Tu contraseña",
+                    .onChange(of: phone) { _, newValue in
+                        let filtered = newValue.filter(\.isNumber)
+                        if filtered.count > 9 {
+                            phone = String(filtered.prefix(9))
+                        } else if filtered != newValue {
+                            phone = filtered
+                        }
+                    }
+
+                // Campo Contraseña / PIN: Máximo 6 caracteres
+                FiTextField(label: "Contraseña", text: $password, placeholder: "6 dígitos",
                             icon: "lock", isSecure: true, contentType: .password)
+                    .onChange(of: password) { _, newValue in
+                        if newValue.count > 6 {
+                            password = String(newValue.prefix(6))
+                        }
+                    }
             }
 
             if let errorMessage = errorMessage {
@@ -53,7 +70,6 @@ struct LoginView: View {
             .padding(.top, 24)
 
             AuthFooterLink(prompt: "¿No tienes una cuenta?", link: "Crear cuenta") {
-                // Registro es la raíz del flujo de autenticación
                 router.authPath = []
             }
             .padding(.top, 20)
@@ -64,7 +80,6 @@ struct LoginView: View {
         isLoading = true
         errorMessage = nil
         
-        // Quitamos los espacios del teléfono por si el usuario escribe "999 999 999"
         let cleanPhone = phone.filter(\.isNumber)
         
         do {
@@ -76,9 +91,7 @@ struct LoginView: View {
             
             print("Login exitoso para: \(response.usuario.nombre)")
             
-            // Recarga el perfil con los datos del usuario que acaba de entrar
             profileStore.reload()
-            
             router.enterApp()
             
         } catch {

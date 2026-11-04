@@ -14,8 +14,9 @@ struct ChangePasswordView: View {
 
     private var pinMismatch: Bool { !confirmPin.isEmpty && newPin != confirmPin }
 
+    // Habilita guardar solo cuando los 3 campos tienen exactamente 6 caracteres y coinciden
     private var canSave: Bool {
-        !current.isEmpty && newPin.count == 6 && newPin.allSatisfy(\.isNumber) && newPin == confirmPin && !isLoading
+        current.count == 6 && newPin.count == 6 && confirmPin.count == 6 && newPin == confirmPin && !isLoading
     }
 
     var body: some View {
@@ -38,20 +39,42 @@ struct ChangePasswordView: View {
                     .padding(.bottom, 24)
 
                     VStack(spacing: 18) {
+                        // 1. Contraseña / PIN actual (Acepta cualquier carácter, máx 6)
                         FiTextField(label: "Contraseña / PIN actual", text: $current, placeholder: "Tu contraseña actual",
                                     icon: "lock", isSecure: true, contentType: .password)
+                            .onChange(of: current) { _, newValue in
+                                if newValue.count > 6 {
+                                    current = String(newValue.prefix(6))
+                                }
+                            }
+
+                        // 2. Nueva contraseña / PIN (Acepta cualquier carácter, máx 6)
                         VStack(alignment: .leading, spacing: 6) {
-                            FiTextField(label: "Nuevo PIN", text: $newPin, placeholder: "6 dígitos",
-                                        icon: "key", isSecure: true, keyboard: .numberPad, contentType: .newPassword)
-                            Text("Debe tener exactamente 6 dígitos.")
+                            FiTextField(label: "Nueva contraseña / PIN", text: $newPin, placeholder: "6 caracteres",
+                                        icon: "key", isSecure: true, contentType: .newPassword)
+                                .onChange(of: newPin) { _, newValue in
+                                    if newValue.count > 6 {
+                                        newPin = String(newValue.prefix(6))
+                                    }
+                                }
+
+                            Text("Debe tener exactamente 6 caracteres.")
                                 .font(.poppins(12))
                                 .foregroundStyle(newPin.isEmpty || newPin.count == 6 ? Color.fiTextTertiary : Color.fiWarning)
                         }
+
+                        // 3. Confirmar contraseña / PIN (Acepta cualquier carácter, máx 6)
                         VStack(alignment: .leading, spacing: 6) {
-                            FiTextField(label: "Confirmar PIN", text: $confirmPin, placeholder: "Repite el nuevo PIN",
-                                        icon: "key", isSecure: true, keyboard: .numberPad, contentType: .newPassword)
+                            FiTextField(label: "Confirmar contraseña / PIN", text: $confirmPin, placeholder: "Repite la nueva contraseña",
+                                        icon: "key", isSecure: true, contentType: .newPassword)
+                                .onChange(of: confirmPin) { _, newValue in
+                                    if newValue.count > 6 {
+                                        confirmPin = String(newValue.prefix(6))
+                                    }
+                                }
+
                             if pinMismatch {
-                                Label("Los PIN no coinciden", systemImage: "exclamationmark.circle")
+                                Label("Las contraseñas no coinciden", systemImage: "exclamationmark.circle")
                                     .font(.poppins(12))
                                     .foregroundStyle(Color.fiDanger)
                             }
@@ -77,15 +100,15 @@ struct ChangePasswordView: View {
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .alert("PIN actualizado", isPresented: $didSave) {
+        .alert("Contraseña actualizada", isPresented: $didSave) {
             Button("Aceptar") { router.pop() }
         } message: {
-            Text("Usa tu nuevo PIN la próxima vez que ingreses.")
+            Text("Usa tu nueva contraseña la próxima vez que ingreses.")
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("Aceptar", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? "No se pudo actualizar el PIN. Intenta nuevamente.")
+            Text(errorMessage ?? "No se pudo actualizar la contraseña. Intenta nuevamente.")
         }
     }
 
