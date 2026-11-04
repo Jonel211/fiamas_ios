@@ -7,11 +7,12 @@ struct RecoverPasswordView: View {
     var onSwitchToVerifyCode: ((String) -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
     
+    @State private var authViewModel = PhoneAuthViewModel()
     @State private var phone = ""
 
     var body: some View {
         VStack(spacing: 0) {
-            // Botón de retroceso en la parte superior izquierda dentro de la tarjeta
+            // Botón de retroceso
             if let onDismiss {
                 HStack {
                     Button(action: onDismiss) {
@@ -48,14 +49,26 @@ struct RecoverPasswordView: View {
                         contentType: .telephoneNumber
                     )
 
+                    if !authViewModel.errorMessage.isEmpty {
+                        Text(authViewModel.errorMessage)
+                            .font(.poppins(12))
+                            .foregroundStyle(.red)
+                            .padding(.top, 8)
+                    }
+
                     FiButton(
-                        title: "Enviar código",
-                        isEnabled: phone.filter(\.isNumber).count >= 9
+                        title: authViewModel.isLoading ? "Enviando..." : "Enviar código",
+                        isEnabled: phone.filter(\.isNumber).count >= 9 && !authViewModel.isLoading
                     ) {
-                        if let onSwitchToVerifyCode {
-                            onSwitchToVerifyCode(phone)
-                        } else {
-                            router.push(.verifyCode)
+                        authViewModel.phone = phone
+                        authViewModel.sendVerificationCode { success in
+                            if success {
+                                if let onSwitchToVerifyCode {
+                                    onSwitchToVerifyCode(phone)
+                                } else {
+                                    router.push(.verifyCode)
+                                }
+                            }
                         }
                     }
                     .padding(.top, 28)
@@ -67,6 +80,7 @@ struct RecoverPasswordView: View {
             .scrollBounceBehavior(.basedOnSize)
             .scrollDismissesKeyboard(.interactively)
         }
+        .environment(authViewModel)
     }
 }
 

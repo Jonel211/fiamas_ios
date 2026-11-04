@@ -3,6 +3,7 @@ import SwiftUI
 /// iOS-verificar-codigo (paso 2)
 struct VerifyCodeView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(PhoneAuthViewModel.self) private var authViewModel
     
     var initialPhone: String = ""
     var onSwitchToNewPassword: (() -> Void)? = nil
@@ -12,7 +13,7 @@ struct VerifyCodeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Botón de retroceso en la parte superior izquierda dentro de la tarjeta
+            // Botón de retroceso
             if let onDismiss {
                 HStack {
                     Button(action: onDismiss) {
@@ -42,17 +43,31 @@ struct VerifyCodeView: View {
 
                     OTPField(code: $code)
 
+                    if !authViewModel.errorMessage.isEmpty {
+                        Text(authViewModel.errorMessage)
+                            .font(.poppins(12))
+                            .foregroundStyle(.red)
+                            .padding(.top, 8)
+                    }
+
                     Label("El código es de un solo uso", systemImage: "info.circle")
                         .font(.poppins(13))
                         .foregroundStyle(Color.fiTextSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 16)
 
-                    FiButton(title: "Verificar", isEnabled: code.count == 6) {
-                        if let onSwitchToNewPassword {
-                            onSwitchToNewPassword()
-                        } else {
-                            router.push(.newPassword)
+                    FiButton(
+                        title: authViewModel.isLoading ? "Verificando..." : "Verificar",
+                        isEnabled: code.count == 6 && !authViewModel.isLoading
+                    ) {
+                        authViewModel.verifyCode(otpCode: code) { success in
+                            if success {
+                                if let onSwitchToNewPassword {
+                                    onSwitchToNewPassword()
+                                } else {
+                                    router.push(.newPassword)
+                                }
+                            }
                         }
                     }
                     .padding(.top, 28)
@@ -68,5 +83,7 @@ struct VerifyCodeView: View {
 }
 
 #Preview {
-    NavigationStack { VerifyCodeView() }.environment(AppRouter())
+    NavigationStack { VerifyCodeView() }
+        .environment(AppRouter())
+        .environment(PhoneAuthViewModel())
 }

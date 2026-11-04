@@ -14,7 +14,7 @@ struct NewPasswordView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Botón de retroceso en la parte superior izquierda dentro de la tarjeta
+            // Botón de retroceso
             if let onDismiss {
                 HStack {
                     Button(action: onDismiss) {
@@ -62,6 +62,7 @@ struct NewPasswordView: View {
                     }
 
                     FiButton(title: "Actualizar contraseña", isEnabled: isValid) {
+                        // TODO: Aquí deberías llamar a tu backend / Firebase para actualizar la contraseña
                         if let onSwitchToLogin {
                             onSwitchToLogin()
                         } else {
