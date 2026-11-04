@@ -3,6 +3,7 @@ import SwiftUI
 /// iOS-new-password (paso 3)
 struct NewPasswordView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(PhoneAuthViewModel.self) private var authViewModel
     @State private var password = ""
     @State private var confirm = ""
 
@@ -25,6 +26,7 @@ struct NewPasswordView: View {
             }
 
             FiButton(title: "Actualizar contraseña", isEnabled: isValid) {
+                // Aquí actualizas la contraseña en tu backend/Firestore
                 router.authPath = [.login]
             }
             .padding(.top, 28)

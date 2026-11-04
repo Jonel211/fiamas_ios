@@ -3,7 +3,7 @@ import SwiftUI
 /// iOS-recuperar-contraseña (paso 1)
 struct RecoverPasswordView: View {
     @Environment(AppRouter.self) private var router
-    @State private var phone = ""
+    @State private var authViewModel = PhoneAuthViewModel()
 
     var body: some View {
         AuthLayout(topHeight: 190, onBack: { router.pop() }) {
@@ -14,14 +14,27 @@ struct RecoverPasswordView: View {
             AuthTitle(title: "¡No te preocupes!", subtitle: "En Fiamas no pierdes nada. Ingresa tu número de teléfono y te enviaremos un código de validación.")
                 .padding(.bottom, 24)
 
-            FiTextField(label: "Número de teléfono", text: $phone, placeholder: "999 999 999",
+            FiTextField(label: "Número de teléfono", text: $authViewModel.phone, placeholder: "999 999 999",
                         icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
 
-            FiButton(title: "Enviar código", isEnabled: phone.filter(\.isNumber).count >= 9) {
-                router.push(.verifyCode)
+            if !authViewModel.errorMessage.isEmpty {
+                Text(authViewModel.errorMessage)
+                    .font(.poppins(12))
+                    .foregroundStyle(.red)
+                    .padding(.top, 8)
+            }
+
+            FiButton(title: authViewModel.isLoading ? "Enviando..." : "Enviar código",
+                     isEnabled: authViewModel.phone.filter(\.isNumber).count >= 9 && !authViewModel.isLoading) {
+                authViewModel.sendVerificationCode { success in
+                    if success {
+                        router.push(.verifyCode)
+                    }
+                }
             }
             .padding(.top, 28)
         }
+        .environment(authViewModel)
     }
 }
 

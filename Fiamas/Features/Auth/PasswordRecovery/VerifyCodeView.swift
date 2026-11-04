@@ -3,6 +3,7 @@ import SwiftUI
 /// iOS-verificar-codigo (paso 2)
 struct VerifyCodeView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(PhoneAuthViewModel.self) private var authViewModel
     @State private var code = ""
 
     var body: some View {
@@ -16,14 +17,26 @@ struct VerifyCodeView: View {
 
             OTPField(code: $code)
 
+            if !authViewModel.errorMessage.isEmpty {
+                Text(authViewModel.errorMessage)
+                    .font(.poppins(12))
+                    .foregroundStyle(.red)
+                    .padding(.top, 8)
+            }
+
             Label("El código es de un solo uso", systemImage: "info.circle")
                 .font(.poppins(13))
                 .foregroundStyle(Color.fiTextSecondary)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 16)
 
-            FiButton(title: "Verificar", isEnabled: code.count == 6) {
-                router.push(.newPassword)
+            FiButton(title: authViewModel.isLoading ? "Verificando..." : "Verificar",
+                     isEnabled: code.count == 6 && !authViewModel.isLoading) {
+                authViewModel.verifyCode(otpCode: code) { success in
+                    if success {
+                        router.push(.newPassword)
+                    }
+                }
             }
             .padding(.top, 28)
         }
