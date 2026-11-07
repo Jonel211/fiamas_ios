@@ -25,7 +25,8 @@ struct SplashView: View {
         .task {
             withAnimation(.spring(duration: 0.7)) { isVisible = true }
             try? await Task.sleep(for: .seconds(1.8))
-            router.phase = .auth
+            guard !Task.isCancelled else { return }
+            router.phase = await AuthService.shared.restoreSession() ? .main : .auth
         }
     }
 }

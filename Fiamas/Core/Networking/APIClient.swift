@@ -33,7 +33,8 @@ class APIClient {
         endpoint: String,
         method: String = "GET",
         body: Data? = nil,
-        requiresAuth: Bool = true
+        requiresAuth: Bool = true,
+        retryOnUnauthorized: Bool = true
     ) async throws -> T {
         
         guard let url = URL(string: "\(baseURL)\(endpoint)") else {
@@ -59,6 +60,11 @@ class APIClient {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
+            if httpResponse.statusCode == 401, requiresAuth, retryOnUnauthorized,
+               await AuthService.shared.refreshSession() {
+                return try await self.request(endpoint: endpoint, method: method, body: body,
+                                              requiresAuth: true, retryOnUnauthorized: false)
+            }
             if httpResponse.statusCode == 429 {
                 throw APIError.serverError("Demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.")
             }
