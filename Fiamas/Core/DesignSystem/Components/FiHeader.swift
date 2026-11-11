@@ -8,8 +8,10 @@ struct FiHeader: View {
     var leading: Leading = .menu
     var trailingIcon: String? = "bell"
     var trailingBadge: Bool = false
+    var secondaryTrailingIcon: String? = nil
     var onLeading: () -> Void = {}
     var onTrailing: () -> Void = {}
+    var onSecondaryTrailing: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 0) {
@@ -23,19 +25,25 @@ struct FiHeader: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
-            if let trailingIcon {
-                iconButton(trailingIcon, label: title, action: onTrailing)
-                    .overlay(alignment: .topTrailing) {
-                        if trailingBadge {
-                            Circle()
-                                .fill(Color.fiGold)
-                                .frame(width: 9, height: 9)
-                                .overlay(Circle().stroke(Color.fiTeal, lineWidth: 2))
-                                .offset(x: -9, y: 10)
+            HStack(spacing: 0) {
+                if let secondaryTrailingIcon {
+                    iconButton(secondaryTrailingIcon, label: "Escanear QR", action: onSecondaryTrailing)
+                }
+
+                if let trailingIcon {
+                    iconButton(trailingIcon, label: title, action: onTrailing)
+                        .overlay(alignment: .topTrailing) {
+                            if trailingBadge {
+                                Circle()
+                                    .fill(Color.fiGold)
+                                    .frame(width: 9, height: 9)
+                                    .overlay(Circle().stroke(Color.fiTeal, lineWidth: 2))
+                                    .offset(x: -9, y: 10)
+                            }
                         }
-                    }
-            } else {
-                Color.clear.frame(width: 44, height: 44)
+                } else if secondaryTrailingIcon == nil {
+                    Color.clear.frame(width: 44, height: 44)
+                }
             }
         }
         .padding(.horizontal, 8)

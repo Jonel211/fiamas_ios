@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var totalOwed: Double = 0
     @State private var errorMessage: String?
     @State private var isLoading = true
+    @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
         storeSummaries.map { summary in
@@ -34,8 +35,10 @@ struct HomeView: View {
             FiHeader(
                 title: "Bienvenido",
                 trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
+                secondaryTrailingIcon: "qrcode.viewfinder",
                 onLeading: { router.push(.menu) },
-                onTrailing: { router.push(.notifications) }
+                onTrailing: { router.push(.notifications) },
+                onSecondaryTrailing: { isShowingScanner = true }
             )
 
             ScrollView {
@@ -61,20 +64,54 @@ struct HomeView: View {
                         TotalOwedCard(total: String(format: "%.2f", totalOwed), score: clientScore, category: clientCategory)
                             .padding(.bottom, 28)
 
-                        SectionHeader(title: "Tiendas recientes", trailing: "\(mappedStores.count) tiendas")
-                            .padding(.bottom, 12)
+                        HStack {
+                            SectionHeader(title: "Tiendas vinculadas", trailing: "\(mappedStores.count) tiendas")
+                            Spacer()
+                            Button {
+                                isShowingScanner = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "qrcode.viewfinder")
+                                    Text("Vincular")
+                                }
+                                .font(.poppins(13, .semibold))
+                                .foregroundStyle(Color.fiTeal)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(Color.fiTealSoft))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.bottom, 12)
 
                         if mappedStores.isEmpty {
-                            VStack(spacing: 10) {
+                            VStack(spacing: 12) {
                                 Image(systemName: "cart.badge.questionmark")
                                     .font(.system(size: 40))
                                     .foregroundStyle(Color.fiTextTertiary)
-                                Text("Aún no tienes fiados activos.")
+                                Text("Aún no tienes tiendas vinculadas.")
                                     .font(.poppins(14, .medium))
                                     .foregroundStyle(Color.fiTextSecondary)
+
+                                Button {
+                                    isShowingScanner = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "qrcode.viewfinder")
+                                        Text("Escanear QR de Tienda")
+                                    }
+                                    .font(.poppins(13, .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Capsule().fill(Color.fiTeal))
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 4)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.top, 20)
+                            .padding(.vertical, 24)
+                            .fiCard()
                         } else {
                             VStack(spacing: 12) {
                                 ForEach(mappedStores) { store in
@@ -93,6 +130,14 @@ struct HomeView: View {
             }
         }
         .fiScreenBackground()
+        .fullScreenCover(isPresented: $isShowingScanner) {
+            LinkStoreScannerSheet { linkedStore in
+                isShowingScanner = false
+                Task {
+                    await loadData()
+                }
+            }
+        }
         .task {
             await loadData()
         }
