@@ -79,6 +79,11 @@ struct HomeView: View {
                             VStack(spacing: 12) {
                                 ForEach(mappedStores) { store in
                                     StoreCardView(store: store)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                                        )
+                                        .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
                                 }
                             }
                         }
@@ -92,12 +97,12 @@ struct HomeView: View {
                 await loadData()
             }
         }
-        .fiScreenBackground()
+        .background(Color(red: 0.92, green: 0.94, blue: 0.94).ignoresSafeArea())
         .task {
             await loadData()
         }
     }
-    
+
     private func loadData() async {
         isLoading = true
         errorMessage = nil
@@ -119,66 +124,168 @@ struct HomeView: View {
     }
 }
 
+// MARK: - Card principal
+
 private struct TotalOwedCard: View {
     let total: String
     let score: Int?
     let category: String
 
+   
+    private let rightTop   = Color(red: 0.19, green: 0.55, blue: 0.52)
+    private let rightBot   = Color(red: 0.15, green: 0.46, blue: 0.44)
+
+    private let swatchTeal = Color(red: 0.19, green: 0.55, blue: 0.52)
+    private let mintTop    = Color(red: 0.80, green: 0.92, blue: 0.88)
+    private let mintMid    = Color(red: 0.55, green: 0.78, blue: 0.73)
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Total debiendo")
-                .font(.poppins(14, .medium))
-                .foregroundStyle(.white.opacity(0.85))
+        ZStack {
+            
+            LinearGradient(colors: [rightTop, rightBot],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
 
-            Text("S/ \(total)")
-                .font(.poppins(36, .bold))
-                .foregroundStyle(.white)
-                .padding(.top, 2)
+        
+            LeftPanelShape()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: mintTop,    location: 0.0),
+                            .init(color: mintMid,    location: 0.5),
+                            .init(color: swatchTeal, location: 1.0)
+                        ],
+                        startPoint: .top, endPoint: .bottom)
+                )
+                .overlay(
+                    
+                    LeftPanelShape()
+                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                )
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Label("Score crediticio", systemImage: "chart.line.uptrend.xyaxis")
-                        .font(.poppins(13, .medium))
-                    Spacer()
+            VStack(spacing: 12) {
+                HStack(spacing: 0) {
+                    StoreIllustration()
+                        .scaleEffect(1.12)
+                        .frame(width: 140, height: 115)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Total debiendo")
+                            .font(.poppins(18, .medium))
+                            .foregroundStyle(.white.opacity(0.92))
+                        Text("S/ \(total)")
+                            .font(.poppins(34, .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 35)
+                }
+
+                // Píldora del score: translúcida, más clara a la izquierda
+                HStack(spacing: 12) {
+                    Label("Score crediticio", systemImage: "chart.bar.fill")
+                        .font(.poppins(12, .medium))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+
+                    Spacer(minLength: 4)
+
+                    Rectangle()
+                        .fill(.white.opacity(0.35))
+                        .frame(width: 1, height: 22)
+
                     StatusBadge(
                         text: category,
                         icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
                         foreground: (score ?? 100) < 50 ? .fiDanger : .fiTealDark,
                         background: .white
                     )
+                    .fixedSize(horizontal: true, vertical: false)
                 }
-                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(LinearGradient(colors: [.white.opacity(0.24), .white.opacity(0.07)],
+                                             startPoint: .leading, endPoint: .trailing))
+                )
+            }
+            .padding(16)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: .black.opacity(0.12), radius: 12, y: 6)
+    }
+}
 
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(score.map(String.init) ?? "—")
-                        .font(.poppins(24, .semibold))
-                    Text("/100")
-                        .font(.poppins(13))
-                        .opacity(0.8)
-                }
-                .foregroundStyle(.white)
+// MARK: - Curva del panel izquierdo
 
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.25))
-                        Capsule()
-                            .fill((score ?? 0) >= 75 ? Color.fiGold : ((score ?? 0) >= 50 ? Color.orange : Color.fiDanger))
-                            .frame(width: geo.size.width * Double(min(max(score ?? 0, 0), 100)) / 100.0)
+// Arranca arriba en ~51% y baja hacia la izquierda hasta ~29%
+private struct LeftPanelShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width, h = rect.height
+        p.move(to: CGPoint(x: 0, y: 0))
+        p.addLine(to: CGPoint(x: w * 0.51, y: 0))
+        p.addCurve(to: CGPoint(x: w * 0.29, y: h),
+                   control1: CGPoint(x: w * 0.47, y: h * 0.25),
+                   control2: CGPoint(x: w * 0.38, y: h * 0.62))
+        p.addLine(to: CGPoint(x: 0, y: h))
+        p.closeSubpath()
+        return p
+    }
+}
+
+// MARK: - Tiendita a color
+
+private struct StoreIllustration: View {
+    private let green  = Color(red: 0.13, green: 0.50, blue: 0.36)
+    private let cream  = Color(red: 0.99, green: 0.96, blue: 0.88)
+    private let yellow = Color(red: 0.98, green: 0.76, blue: 0.25)
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Base
+            Ellipse()
+                .fill(Color(red: 0.55, green: 0.80, blue: 0.70))
+                .frame(width: 124, height: 22)
+                .offset(y: 4)
+
+            // Hojas
+            Image(systemName: "leaf.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(Color(red: 0.36, green: 0.68, blue: 0.40))
+                .rotationEffect(.degrees(-35))
+                .offset(x: -48, y: -14)
+
+            // Tienda
+            VStack(spacing: 0) {
+                Capsule().fill(green).frame(width: 74, height: 8)          // techo
+
+                HStack(spacing: 0) {                                        // toldo
+                    ForEach(0..<6, id: \.self) { i in
+                        Rectangle().fill(i % 2 == 0 ? green : Color.white)
                     }
                 }
-                .frame(height: 6)
+                .frame(width: 92, height: 22)
+                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 9,
+                                                  bottomTrailingRadius: 9, topTrailingRadius: 3))
+
+                ZStack {                                                    // cuerpo
+                    Rectangle().fill(cream)
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 3).fill(green)       // puerta
+                            .frame(width: 18, height: 34)
+                        RoundedRectangle(cornerRadius: 3).fill(yellow)      // ventana
+                            .frame(width: 26, height: 20)
+                            .offset(y: -4)
+                    }
+                }
+                .frame(width: 80, height: 40)
             }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.14)))
-            .padding(.top, 16)
+            .offset(y: -6)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .shadow(color: Color.fiTealDark.opacity(0.3), radius: 14, y: 8)
-        )
     }
 }
 
