@@ -1,0 +1,57 @@
+
+{
+  "terms": {
+    "intro": "Bienvenido a Fiamas. Al descargar, acceder o utilizar nuestra aplicación móvil, aceptas cumplir con los siguientes términos y condiciones. Te recomendamos leerlos con atención.",
+    "description": "Fiamas es una herramienta de gestión comercial diseñada para pequeños negocios y bodegas. La aplicación permite:",
+    "features": [
+      "Registrar fiados, productos y control de inventario.",
+      "Llevar el registro de fiados, deudas y cobros de clientes.",
+      "Visualizar reportes financieros y exportar resúmenes en formato PDF.",
+      "Vincular clientes automáticamente con el código QR de tu tienda.",
+      "Evaluar el comportamiento de pago de tus clientes con el score de pagador.",
+      "Trabajar sin internet con sincronización automática de datos."
+    ],
+    "responsibility": "Responsabilidad de los Datos: Eres responsable de mantener la confidencialidad de tus credenciales de acceso y de toda la actividad que ocurra en tu cuenta.",
+    "accuracy": "Exactitud de la Información: Te comprometes a proporcionar información precisa y actualizada al registrar tu negocio y tus productos.",
+    "internalUse": "Uso Interno: La información de los clientes (nombres, teléfonos, montos fiados) ingresada en la app es para tu gestión interna.",
+    "consent": "Consentimiento: Declaras contar con la autorización de tus clientes para registrar sus datos de contacto y saldos pendientes dentro de la plataforma con fines exclusivamente informativos.",
+    "reports": "Los reportes descargados en PDF son para uso informativo y administrativo del usuario.",
+    "noInvoice": "Fiamas no emite comprobantes de pago ni facturas electrónicas válidas ante la SUNAT (a menos que integres un sistema de facturación oficial).",
+    "property": "Todo el diseño, código, logotipos, marca y elementos visuales de la aplicación son propiedad exclusiva de Fiamas. Queda prohibida su copia, modificación o distribución sin autorización previa.",
+    "balance": "Precisión de Saldos: La app calcula los saldos y reportes en función de los datos que ingreses. No nos hacemos responsables por errores de digitación o pérdida de información por mal uso del dispositivo.",
+    "availability": "Disponibilidad: Nos esforzamos por mantener el servicio disponible 24/7, pero no garantizamos un servicio ininterrumpido en caso de mantenimiento o fallas técnicas ajenas a nuestro control.",
+    "updates": "Nos reservamos el derecho de actualizar estos Términos y Condiciones en cualquier momento. Notificaremos los cambios relevantes a través de la aplicación o por correo electrónico.",
+    "contact": "Si tienes dudas sobre estos términos, puedes escribirnos a través de la sección de Ayuda y Soporte en la app o al correo: soporte@fiamas.com."
+  },
+  "privacy": {
+    "intro": "En Fiamas, nos tomamos muy en serio la privacidad y seguridad de tus datos y los de tu negocio. Esta Política de Privacidad describe cómo recopilamos, utilizamos, almacenamos y protegemos tu información personal y comercial cuando utilizas nuestra aplicación móvil.",
+    "collectIntro": "Para ofrecerte un funcionamiento óptimo de la aplicación, recopilamos los siguientes datos:",
+    "collectedData": [
+      "Información de la Cuenta y Negocio: Nombre del titular, nombre de la bodega/negocio, dirección física, número de teléfono y correo electrónico.",
+      "Información Comercial e Inventario: Nombres de productos, precios, stock, historial de ventas y registros de movimientos financieros.",
+      "Información de Clientes y Fiados: Nombres, números de contacto y montos adeudados que ingresas manualmente dentro del módulo de fiados.",
+      "Datos Técnicos y de Uso: Dirección IP, tipo de dispositivo, sistema operativo e informes de fallas para mejorar el rendimiento de la app."
+    ],
+    "purposesIntro": "Utilizamos la información recopilada exclusivamente para los siguientes fines:",
+    "purposes": [
+      "Facilitar el control de tus ventas, inventario y gestión de cobranzas a clientes.",
+      "Generar los reportes visuales y archivos exportables en formato PDF dentro de la app.",
+      "Brindarte soporte técnico y responder a tus consultas en el módulo de ayuda.",
+      "Enviar notificaciones importantes sobre actualizaciones de la aplicación o cambios en el servicio."
+    ],
+    "dataSecurity": "Seguridad de los Datos: Protegemos tu información con contraseñas cifradas, conexiones seguras y almacenamiento en servidores cloud de confianza. Solo tú puedes acceder a los datos de tu negocio con tu sesión activa.",
+    "retention": "Conservación de la Información: Conservamos tus datos mientras tu cuenta esté activa. Si decides eliminar tu cuenta, toda la información asociada será borrada de forma definitiva de nuestros servidores.",
+    "thirdPartiesIntro": "No compartimos tus datos personales ni comerciales con terceros, salvo en las siguientes excepciones:",
+    "thirdParties": [
+      "Proveedores de Servicios Cloud: Para el alojamiento seguro de la base de datos de tu app.",
+      "Requerimiento Legal: Cuando sea exigido por ley o por orden de una autoridad competente."
+    ],
+    "rights": "Tienes derecho a acceder, rectificar, actualizar o solicitar la eliminación definitiva de tu cuenta y todos los datos registrados en la app. Puedes ejercer estos derechos enviando una solicitud desde la sección de Configuración / Perfil o escribiéndonos a jhad@fiamas.com.",
+    "updates": "Nos reservamos el derecho de actualizar esta Política de Privacidad en cualquier momento. Notificaremos cualquier cambio significativo publicando la nueva versión dentro de la app con la fecha actualizada.",
+    "contactIntro": "Si tienes preguntas o dudas sobre esta Política de Privacidad, puedes contactarnos directamente en:",
+    "contactChannels": [
+      "Correo de soporte: soporte@fiamas.com",
+      "Sección de Soporte: Menú Ayuda dentro de la App."
+    ]
+  }
+}
