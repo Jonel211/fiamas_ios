@@ -4,6 +4,11 @@ import SwiftUI
 struct RegisterView: View {
     @Environment(AppRouter.self) private var router
     var qrCode: String? = nil
+    
+    // Callbacks para interactuar fluidamente dentro del sheet
+    var onSwitchToLogin: (() -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil
+
     @State private var phone = ""
     @State private var fullName = ""
     @State private var lastName = ""
@@ -34,83 +39,111 @@ struct RegisterView: View {
     }
 
     var body: some View {
-        AuthLayout(topColor: .white, sheetColor: .fiSky, logoLayout: .horizontal, topHeight: 150) {
-            AuthTitle(title: "Crear tu cuenta", subtitle: "Empieza a ver tus notas de crédito")
-                .padding(.bottom, 24)
-
-            if qrCode != nil {
-                Label("Código QR de tienda escaneado", systemImage: "qrcode")
-                    .font(.poppins(13, .medium))
-                    .foregroundStyle(Color.fiTeal)
-                    .padding(.bottom, 16)
+        VStack(spacing: 0) {
+            if let onDismiss {
+                HStack {
+                    Button(action: onDismiss) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.fiNavy)
+                            .padding(8)
+                            .background(Circle().fill(Color.gray.opacity(0.12)))
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
             }
 
-            VStack(spacing: 16) {
-                FiTextField(label: "Número de celular", text: $phone, placeholder: "999 999 999",
-                            icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
-                    .onChange(of: phone) { _, newValue in
-                        let digits = String(newValue.filter { $0.isASCII && $0.isNumber }.prefix(9))
-                        if newValue != digits { phone = digits }
-                        handlePhoneChange(digits)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    AuthTitle(title: "Crear tu cuenta", subtitle: "Empieza a ver tus notas de crédito")
+                        .padding(.bottom, 20)
+
+                    if qrCode != nil {
+                        Label("Código QR de tienda escaneado", systemImage: "qrcode")
+                            .font(.poppins(13, .medium))
+                            .foregroundStyle(Color.fiTeal)
+                            .padding(.bottom, 16)
                     }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    FiTextField(label: qrCode == nil ? "Nombres completos" : "Nombres", text: $fullName,
-                                placeholder: qrCode == nil ? "Se completará con tu número" : "Se completará con tu número o escríbelo",
-                                icon: "person", contentType: .name, capitalization: .words)
-                        .disabled(qrCode == nil || isFound)
-                        .opacity(isFound || qrCode != nil ? 1 : 0.6)
-                    if isFound {
-                        Label("Datos registrados por tu tienda", systemImage: "checkmark.circle")
-                            .font(.poppins(12))
-                            .foregroundStyle(Color.secondary)
+                    VStack(spacing: 14) {
+                        FiTextField(label: "Número de celular", text: $phone, placeholder: "999 999 999",
+                                    icon: "phone", keyboard: .phonePad, contentType: .telephoneNumber)
+                            .onChange(of: phone) { _, newValue in
+                                let digits = String(newValue.filter { $0.isASCII && $0.isNumber }.prefix(9))
+                                if newValue != digits { phone = digits }
+                                handlePhoneChange(digits)
+                            }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            FiTextField(label: qrCode == nil ? "Nombres completos" : "Nombres", text: $fullName,
+                                        placeholder: qrCode == nil ? "Se completará con tu número" : "Se completará con tu número o escríbelo",
+                                        icon: "person", contentType: .name, capitalization: .words)
+                                .disabled(qrCode == nil || isFound)
+                                .opacity(isFound || qrCode != nil ? 1 : 0.6)
+                            if isFound {
+                                Label("Datos registrados por tu tienda", systemImage: "checkmark.circle")
+                                    .font(.poppins(12))
+                                    .foregroundStyle(Color.secondary)
+                            }
+                        }
+
+                        if qrCode != nil {
+                            FiTextField(label: "Apellidos", text: $lastName, placeholder: "Tus apellidos",
+                                        icon: "person", contentType: .familyName, capitalization: .words)
+                                .disabled(isFound)
+                        }
+
+                        FiTextField(label: "Dirección", text: $address, placeholder: "Tu dirección",
+                                    icon: "mappin.and.ellipse", contentType: .fullStreetAddress, capitalization: .sentences)
+
+                        FiTextField(label: "Crear una contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
+                                    icon: "lock", isSecure: true, contentType: .newPassword)
+                        if !password.isEmpty && password.count < 6 {
+                            Label("La contraseña debe tener al menos 6 caracteres", systemImage: "exclamationmark.circle")
+                                .font(.poppins(12))
+                                .foregroundStyle(Color.fiDanger)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            FiTextField(label: "Confirmar contraseña", text: $confirmPassword, placeholder: "Repite tu contraseña",
+                                        icon: "lock", isSecure: true, contentType: .newPassword)
+                            if passwordsMismatch {
+                                Label("Las contraseñas no coinciden", systemImage: "exclamationmark.circle")
+                                    .font(.poppins(12))
+                                    .foregroundStyle(Color.fiDanger)
+                            }
+                        }
                     }
-                }
 
-                if qrCode != nil {
-                    FiTextField(label: "Apellidos", text: $lastName, placeholder: "Tus apellidos",
-                                icon: "person", contentType: .familyName, capitalization: .words)
-                        .disabled(isFound)
-                }
-
-                FiTextField(label: "Dirección", text: $address, placeholder: "Tu dirección",
-                            icon: "mappin.and.ellipse", contentType: .fullStreetAddress, capitalization: .sentences)
-
-                FiTextField(label: "Crear una contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
-                            icon: "lock", isSecure: true, contentType: .newPassword)
-                if !password.isEmpty && password.count < 6 {
-                    Label("La contraseña debe tener al menos 6 caracteres", systemImage: "exclamationmark.circle")
-                        .font(.poppins(12))
-                        .foregroundStyle(Color.fiDanger)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    FiTextField(label: "Confirmar contraseña", text: $confirmPassword, placeholder: "Repite tu contraseña",
-                                icon: "lock", isSecure: true, contentType: .newPassword)
-                    if passwordsMismatch {
-                        Label("Las contraseñas no coinciden", systemImage: "exclamationmark.circle")
+                    if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.circle")
                             .font(.poppins(12))
                             .foregroundStyle(Color.fiDanger)
+                            .padding(.top, 12)
                     }
+
+                    FiButton(title: "Registrarme", style: .accent, isEnabled: canSubmit) {
+                        Task { await register() }
+                    }
+                    .padding(.top, 24)
+
+                    AuthFooterLink(prompt: "¿Ya tienes una cuenta?", link: "Inicia sesión") {
+                        if let onSwitchToLogin {
+                            onSwitchToLogin()
+                        } else {
+                            router.push(.login)
+                        }
+                    }
+                    .padding(.top, 18)
                 }
+                .padding(.horizontal, 28)
+                .padding(.top, 12)
+                .padding(.bottom, 32)
             }
-
-            if let errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.circle")
-                    .font(.poppins(12))
-                    .foregroundStyle(Color.fiDanger)
-                    .padding(.top, 12)
-            }
-
-            FiButton(title: "Registrarme", style: .accent, isEnabled: canSubmit) {
-                Task { await register() }
-            }
-            .padding(.top, 28)
-
-            AuthFooterLink(prompt: "¿Ya tienes una cuenta?", link: "Inicia sesión") {
-                router.push(.login)
-            }
-            .padding(.top, 20)
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
@@ -181,7 +214,11 @@ struct RegisterView: View {
             try await AuthService.shared.registro(telefono: phoneDigits, password: password, direccion: address,
                                                   nombres: qrCode == nil ? nil : fullName,
                                                   apellidos: qrCode == nil ? nil : lastName, qrCode: qrCode)
-            router.push(.login)
+            if let onSwitchToLogin {
+                onSwitchToLogin()
+            } else {
+                router.push(.login)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

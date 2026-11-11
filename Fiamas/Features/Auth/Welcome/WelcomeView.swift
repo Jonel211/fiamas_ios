@@ -1,27 +1,58 @@
 import SwiftUI
 
+enum AuthSheetMode: Equatable {
+    case welcome
+    case login
+    case register(qrCode: String?)
+}
+
 struct WelcomeView: View {
     @Environment(AppRouter.self) private var router
     @State private var showWhatsAppSheet = false
     @State private var isShowingScanner = false
     
+    // Estado del panel desplegable (Welcome / Login / Register)
+    @State private var sheetMode: AuthSheetMode = .welcome
+    @State private var dragOffsetY: CGFloat = 0
+
+    // Color del fondo base según la tarjeta actual
+    private var baseBackgroundColor: Color {
+        switch sheetMode {
+        case .welcome:
+            return Color(red: 0.09, green: 0.58, blue: 0.55)
+        case .login, .register:
+            return .white
+        }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let screenHeight = geometry.size.height
             let screenWidth = geometry.size.width
             let safeTop = geometry.safeAreaInsets.top
             
-            // La cabecera ocupa el 42% de la altura total de la pantalla
-            let headerHeight = screenHeight * 0.42
+            // Altura base del header según la pantalla activa
+            let baseHeaderHeight: CGFloat = switch sheetMode {
+            case .welcome: screenHeight * 0.44
+            case .login: screenHeight * 0.40
+            case .register: screenHeight * 0.22
+            }
             
-            VStack(spacing: 0) {
-                // MARK: - Sección Superior (Imagen de Fondo y Header)
+            // La altura real del header crece dinámicamente si el usuario arrastra hacia abajo (solo en login/register)
+            let currentHeaderHeight = max(baseHeaderHeight, baseHeaderHeight + dragOffsetY)
+            
+            ZStack(alignment: .top) {
+                // MARK: - 1. Fondo base unificado del color de la tarjeta
+                baseBackgroundColor
+                    .ignoresSafeArea()
+                
+                // MARK: - 2. Sección Superior (Imagen de Fondo y Header)
                 ZStack(alignment: .top) {
-                    // Imagen de Fondo (se extiende 40pt por debajo del corte para la tarjeta)
                     Image("Fondo-Fiamas")
                         .resizable()
                         .scaledToFill()
-                        .frame(width: screenWidth, height: headerHeight + 40)
+                        .offset(y: 18)
+                        .frame(width: screenWidth, height: currentHeaderHeight + 40, alignment: .top)
                         .clipped()
                     
                     // Íconos superiores (Logo y WhatsApp)
@@ -45,107 +76,102 @@ struct WelcomeView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 24)
-                    // Ubica los íconos justo debajo de la barra de estado / Isla Dinámica
-                    .padding(.top, max(safeTop, 44) + 8)
+                    .padding(.top, max(safeTop, 48) + 12)
                 }
-                .frame(width: screenWidth, height: headerHeight)
+                .frame(width: screenWidth, height: currentHeaderHeight)
+                .ignoresSafeArea(edges: .top)
                 
-                // MARK: - Tarjeta Inferior
-                ZStack {
-                    Color(red: 0.09, green: 0.58, blue: 0.55)
+                // MARK: - 3. Tarjeta Deslizable / Bottom Sheet
+                VStack(spacing: 0) {
+                    Spacer(minLength: currentHeaderHeight - 20)
                     
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 16) {
-                            Spacer(minLength: 12)
-                            
-                            Text("BIENVENIDO")
-                                .font(.system(size: 28, weight: .black))
-                                .foregroundColor(.white)
-                            
-                            Text("¡Nos alegra tenerte por aquí!")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
-                                .padding(.bottom, 4)
-                            
-                            // Botón: Inicia sesión
-                            Button(action: {
-                                router.push(.login)
-                            }) {
-                                Text("Inicia sesión")
-                                    .font(.headline)
-                                    .bold()
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(Color(red: 0.90, green: 0.68, blue: 0.25))
-                                    .cornerRadius(12)
-                            }
-                            .padding(.horizontal, 32)
-                            
-                            // Texto pre-registro
-                            Text("¿No tienes cuenta?")
-                                .font(.subheadline)
-                                .bold()
-                                .foregroundColor(.white)
-                                .padding(.top, 4)
-                            
-                            // Botón: Regístrate
-                            Button(action: {
-                                router.push(.register(qrCode: nil))
-                            }) {
-                                Text("Registrate")
-                                    .font(.headline)
-                                    .bold()
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(Color(red: 0.90, green: 0.68, blue: 0.25))
-                                    .cornerRadius(12)
-                            }
-                            .padding(.horizontal, 32)
-                            
-                            Spacer(minLength: 16)
-                            
-                            // MARK: - Sección Escanear QR Funcional
-                            Button(action: {
-                                isShowingScanner = true
-                            }) {
-                                VStack(spacing: 10) {
-                                    Image(systemName: "qrcode.viewfinder")
-                                        .font(.system(size: 72, weight: .regular))
-                                        .foregroundColor(.black)
-                                    
-                                    Text("Escanear QR del Tendero")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
+                    VStack(spacing: 0) {
+                        // Indicador de arrastre (Pill Handle) - solo en Login y Registro
+                        if sheetMode != .welcome {
+                            Capsule()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 38, height: 5)
+                                .padding(.top, 10)
+                                .padding(.bottom, 6)
+                        }
+                        
+                        // Contenido dinámico del sheet
+                        switch sheetMode {
+                        case .welcome:
+                            welcomeSheetContent(screenHeight: screenHeight)
+                        case .login:
+                            LoginView(
+                                onSwitchToRegister: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .register(qrCode: nil)
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .welcome
+                                    }
+                                }
+                            )
+                        case .register(let qrCode):
+                            RegisterView(
+                                qrCode: qrCode,
+                                onSwitchToLogin: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .login
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .welcome
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
+                            .fill(sheetMode == .welcome ? Color(red: 0.09, green: 0.58, blue: 0.55) : Color.white)
+                            .shadow(color: .black.opacity(0.12), radius: 10, y: -4)
+                    )
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                guard sheetMode != .welcome else { return }
+                                if value.translation.height > 0 {
+                                    dragOffsetY = value.translation.height
                                 }
                             }
-                            .buttonStyle(.plain)
-                            
-                            Spacer(minLength: 24)
-                        }
-                        .frame(maxWidth: 500)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: screenHeight * 0.58 - 20)
-                    }
-                    .scrollBounceBehavior(.basedOnSize)
+                            .onEnded { value in
+                                guard sheetMode != .welcome else { return }
+                                if value.translation.height > 110 || value.predictedEndTranslation.height > 200 {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        sheetMode = .welcome
+                                        dragOffsetY = 0
+                                    }
+                                } else {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        dragOffsetY = 0
+                                    }
+                                }
+                            }
+                    )
                 }
-                .clipShape(.rect(topLeadingRadius: 28, topTrailingRadius: 28))
-                .padding(.top, -24)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea(edges: .bottom)
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: sheetMode)
         }
         .ignoresSafeArea()
-        // Modal de escaneo de QR
         .fullScreenCover(isPresented: $isShowingScanner) {
             QRScannerSheet(
                 onNavigateToRegister: { code in
                     isShowingScanner = false
-                    router.push(.register(qrCode: code))
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        sheetMode = .register(qrCode: code)
+                    }
                 }
             )
         }
-        // Desplegable tipo Intent / Sheet para WhatsApp
         .confirmationDialog("Soporte por WhatsApp", isPresented: $showWhatsAppSheet, titleVisibility: .visible) {
             Button("Abrir WhatsApp") {
                 openWhatsApp()
@@ -155,10 +181,87 @@ struct WelcomeView: View {
             Text("¿Deseas abrir la aplicación de WhatsApp para contactar a soporte?")
         }
     }
+
+    @ViewBuilder
+    private func welcomeSheetContent(screenHeight: CGFloat) -> some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 16) {
+                Spacer(minLength: 16)
+                
+                Text("BIENVENIDO")
+                    .font(.system(size: 28, weight: .black))
+                    .foregroundColor(.white)
+                
+                Text("¡Nos alegra tenerte por aquí!")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(.bottom, 4)
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        sheetMode = .login
+                    }
+                }) {
+                    Text("Inicia sesión")
+                        .font(.headline)
+                        .bold()
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color(red: 0.90, green: 0.68, blue: 0.25))
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal, 32)
+                
+                Text("¿No tienes cuenta?")
+                    .font(.subheadline)
+                    .bold()
+                    .foregroundColor(.white)
+                    .padding(.top, 4)
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        sheetMode = .register(qrCode: nil)
+                    }
+                }) {
+                    Text("Registrate")
+                        .font(.headline)
+                        .bold()
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color(red: 0.90, green: 0.68, blue: 0.25))
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal, 32)
+                
+                Spacer(minLength: 16)
+                
+                Button(action: {
+                    isShowingScanner = true
+                }) {
+                    VStack(spacing: 10) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 72, weight: .regular))
+                            .foregroundColor(.black)
+                        
+                        Text("Escanear QR del Tendero")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                }
+                .buttonStyle(.plain)
+                
+                Spacer(minLength: 28)
+            }
+            .frame(maxWidth: 500)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
     
-    // Función para abrir la URL de WhatsApp
     private func openWhatsApp() {
-        let phoneNumber = "+51999999999" // Número oficial
+        let phoneNumber = "+51999999999"
         if let url = URL(string: "https://wa.me/\(phoneNumber)"), UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url)
         }

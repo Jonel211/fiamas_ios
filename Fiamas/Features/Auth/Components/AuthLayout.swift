@@ -38,16 +38,26 @@ struct AuthLayout<Content: View>: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("Atrás")
                         .padding(.leading, 20)
-                        .padding(.top, 8)
+                        .padding(.top, 16)
                     }
                 }
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        // Indicador superior de deslizar
+                        HStack {
+                            Spacer()
+                            Capsule()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 36, height: 4)
+                            Spacer()
+                        }
+                        .padding(.bottom, 16)
+
                         content
                     }
                     .padding(.horizontal, 28)
-                    .padding(.top, 32)
+                    .padding(.top, 16)
                     .padding(.bottom, 32)
                 }
                 .scrollBounceBehavior(.basedOnSize)

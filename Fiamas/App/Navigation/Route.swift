@@ -18,6 +18,10 @@ enum Route: Hashable {
     case editProfile
     case help
     
+    // Legal
+    case terms
+    case privacy
+    
     static var paymentDetail: Route {
         .paymentDetail(nil)
     }
