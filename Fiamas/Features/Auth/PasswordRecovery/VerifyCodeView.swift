@@ -3,7 +3,7 @@ import SwiftUI
 /// iOS-verificar-codigo (paso 2)
 struct VerifyCodeView: View {
     @Environment(AppRouter.self) private var router
-    @Environment(PhoneAuthViewModel.self) private var authViewModel
+    @EnvironmentObject private var authViewModel: PhoneAuthViewModel
     @State private var code = ""
 
     var body: some View {

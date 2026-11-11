@@ -2,6 +2,8 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppRouter.self) private var router
+    @StateObject private var phoneAuthViewModel = PhoneAuthViewModel()
+    @State private var profileStore = ProfileStore() // 👈 Cambiado a @State porque ProfileStore usa @Observable
 
     var body: some View {
         @Bindable var router = router
@@ -14,11 +16,14 @@ struct RootView: View {
                     WelcomeView()
                         .navigationDestination(for: Route.self, destination: destination)
                 }
+                .environmentObject(phoneAuthViewModel)
+                .environment(profileStore) // 👈 Inyectado con .environment() para @Observable
             case .main:
                 NavigationStack(path: $router.mainPath) {
                     MainTabView()
                         .navigationDestination(for: Route.self, destination: destination)
                 }
+                .environment(profileStore) // 👈 Inyectado con .environment()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: router.phase)

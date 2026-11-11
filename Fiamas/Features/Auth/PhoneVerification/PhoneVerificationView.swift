@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// iOS-verificacion-numero
 struct PhoneVerificationView: View {
     @Environment(AppRouter.self) private var router
+    @EnvironmentObject private var authViewModel: PhoneAuthViewModel
+    
     @State private var code = ""
     @State private var secondsLeft = 30
 
@@ -32,7 +33,7 @@ struct PhoneVerificationView: View {
                 .padding(.top, 20)
 
             (Text("Te enviamos un código de 6 dígitos al\n")
-             + Text("+51 999 999 999").font(.poppins(15, .semibold)).foregroundColor(.fiTextPrimary))
+            + Text("+51 999 999 999").font(.poppins(15, .semibold)).foregroundColor(.fiTextPrimary))
                 .font(.poppins(15))
                 .foregroundStyle(Color.fiTextSecondary)
                 .multilineTextAlignment(.center)
@@ -47,8 +48,12 @@ struct PhoneVerificationView: View {
 
             Spacer()
 
-            FiButton(title: "Verificar", isEnabled: code.count == 6) {
-                router.enterApp()
+            FiButton(title: "Verificar", isEnabled: code.count == 6 && !authViewModel.isLoading) {
+                authViewModel.verifyCode(otpCode: code) { success in
+                    if success {
+                        router.enterApp()
+                    }
+                }
             }
             .padding(.bottom, 16)
         }
@@ -88,5 +93,9 @@ struct PhoneVerificationView: View {
 }
 
 #Preview {
-    NavigationStack { PhoneVerificationView() }.environment(AppRouter())
+    NavigationStack {
+        PhoneVerificationView()
+    }
+    .environment(AppRouter())
+    .environmentObject(PhoneAuthViewModel())
 }
