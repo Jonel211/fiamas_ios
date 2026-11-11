@@ -41,6 +41,7 @@ struct RootView: View {
             case .changePassword: ChangePasswordView()
             case .editProfile: EditProfileView()
             case .help: HelpView()
+            case .about: AboutView()
             }
         }
         .toolbar(.hidden, for: .navigationBar)

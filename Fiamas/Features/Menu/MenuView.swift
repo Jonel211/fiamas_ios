@@ -50,6 +50,10 @@ struct MenuView: View {
                             MenuRowView(icon: "questionmark.circle", title: "Centro de ayuda")
                         }
                         FiDivider(leadingInset: 64)
+                        Button { router.push(.about) } label: {
+                            MenuRowView(icon: "info.circle", title: "Acerca de Fiamas", detail: AppVersion.short)
+                        }
+                        FiDivider(leadingInset: 64)
                         ShareLink(item: shareMessage) {
                             MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
                         }
