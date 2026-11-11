@@ -385,4 +385,3 @@ struct LinkStoreScannerSheet: View {
 #Preview {
     LinkStoreScannerSheet()
 }
-

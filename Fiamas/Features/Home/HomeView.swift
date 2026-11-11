@@ -13,7 +13,6 @@ struct HomeView: View {
     @State private var totalOwed: Double = 0
     @State private var errorMessage: String?
     @State private var isLoading = true
-    @State private var hasLoadedOnce = false
     @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
