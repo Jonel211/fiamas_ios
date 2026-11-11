@@ -10,6 +10,7 @@ struct VerifyCodeView: View {
     var onDismiss: (() -> Void)? = nil
     
     @State private var code = ""
+    @State private var errorMessage: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,8 +44,8 @@ struct VerifyCodeView: View {
 
                     OTPField(code: $code)
 
-                    if !authViewModel.errorMessage.isEmpty {
-                        Text(authViewModel.errorMessage)
+                    if let errorMsg = errorMessage ?? (authViewModel.errorMessage.isEmpty ? nil : authViewModel.errorMessage) {
+                        Text(errorMsg)
                             .font(.poppins(12))
                             .foregroundStyle(.red)
                             .padding(.top, 8)
@@ -67,6 +68,8 @@ struct VerifyCodeView: View {
                                 } else {
                                     router.push(.newPassword)
                                 }
+                            } else {
+                                errorMessage = authViewModel.errorMessage
                             }
                         }
                     }

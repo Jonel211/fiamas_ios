@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// iOS-recuperar-contraseña (paso 1)
 struct RecoverPasswordView: View {
     @Environment(AppRouter.self) private var router
     
@@ -9,6 +8,11 @@ struct RecoverPasswordView: View {
     
     @State private var authViewModel = PhoneAuthViewModel()
     @State private var phone = ""
+    @State private var errorMessage: String? = nil
+
+    private var canSubmit: Bool {
+        phone.filter(\.isNumber).count == 9 && !authViewModel.isLoading
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,9 +52,17 @@ struct RecoverPasswordView: View {
                         keyboard: .phonePad,
                         contentType: .telephoneNumber
                     )
+                    .onChange(of: phone) { _, newValue in
+                        let filtered = newValue.filter(\.isNumber)
+                        if filtered.count > 9 {
+                            phone = String(filtered.prefix(9))
+                        } else if filtered != newValue {
+                            phone = filtered
+                        }
+                    }
 
-                    if !authViewModel.errorMessage.isEmpty {
-                        Text(authViewModel.errorMessage)
+                    if let errorMsg = errorMessage ?? (authViewModel.errorMessage.isEmpty ? nil : authViewModel.errorMessage) {
+                        Text(errorMsg)
                             .font(.poppins(12))
                             .foregroundStyle(.red)
                             .padding(.top, 8)
@@ -58,7 +70,7 @@ struct RecoverPasswordView: View {
 
                     FiButton(
                         title: authViewModel.isLoading ? "Enviando..." : "Enviar código",
-                        isEnabled: phone.filter(\.isNumber).count >= 9 && !authViewModel.isLoading
+                        isEnabled: canSubmit
                     ) {
                         authViewModel.phone = phone
                         authViewModel.sendVerificationCode { success in
@@ -68,6 +80,8 @@ struct RecoverPasswordView: View {
                                 } else {
                                     router.push(.verifyCode)
                                 }
+                            } else {
+                                errorMessage = authViewModel.errorMessage
                             }
                         }
                     }

@@ -1,16 +1,22 @@
 import SwiftUI
 
-/// iOS-new-password (paso 3)
 struct NewPasswordView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(PhoneAuthViewModel.self) private var authViewModel
     
     var onSwitchToLogin: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
     
-    @State private var password = ""
-    @State private var confirm = ""
+    @State private var newPassword = ""
+    @State private var confirmPassword = ""
+    @State private var errorMessage: String? = nil
 
-    private var isValid: Bool { password.count >= 6 && password == confirm }
+    private var canSubmit: Bool {
+        newPassword.count == 6 &&
+        confirmPassword.count == 6 &&
+        newPassword == confirmPassword &&
+        !authViewModel.isLoading
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,35 +44,64 @@ struct NewPasswordView: View {
 
                     AuthTitle(
                         title: "¡Actualiza tu contraseña!",
-                        subtitle: "Elige una contraseña que no hayas usado antes."
+                        subtitle: "Ingresa una contraseña de exactamente 6 caracteres."
                     )
                     .padding(.bottom, 24)
 
                     VStack(spacing: 16) {
                         FiTextField(
                             label: "Nueva contraseña",
-                            text: $password,
-                            placeholder: "Mínimo 6 caracteres",
+                            text: $newPassword,
+                            placeholder: "6 dígitos",
                             icon: "lock",
                             isSecure: true,
                             contentType: .newPassword
                         )
+                        .onChange(of: newPassword) { _, newValue in
+                            if newValue.count > 6 {
+                                newPassword = String(newValue.prefix(6))
+                            }
+                        }
+                        
                         FiTextField(
                             label: "Confirmar nueva contraseña",
-                            text: $confirm,
-                            placeholder: "Repite tu contraseña",
+                            text: $confirmPassword,
+                            placeholder: "6 dígitos",
                             icon: "lock",
                             isSecure: true,
                             contentType: .newPassword
                         )
+                        .onChange(of: confirmPassword) { _, newValue in
+                            if newValue.count > 6 {
+                                confirmPassword = String(newValue.prefix(6))
+                            }
+                        }
                     }
 
-                    FiButton(title: "Actualizar contraseña", isEnabled: isValid) {
-                        // TODO: Aquí deberías llamar a tu backend / Firebase para actualizar la contraseña
-                        if let onSwitchToLogin {
-                            onSwitchToLogin()
-                        } else {
-                            router.authPath = []
+                    if let errorMsg = errorMessage ?? (authViewModel.errorMessage.isEmpty ? nil : authViewModel.errorMessage) {
+                        Text(errorMsg)
+                            .font(.poppins(12))
+                            .foregroundStyle(.red)
+                            .padding(.top, 8)
+                    }
+
+                    FiButton(
+                        title: authViewModel.isLoading ? "Actualizando..." : "Actualizar contraseña",
+                        isEnabled: canSubmit
+                    ) {
+                        authViewModel.newPassword = newPassword
+                        authViewModel.confirmPassword = confirmPassword
+                        
+                        authViewModel.updatePassword { success in
+                            if success {
+                                if let onSwitchToLogin {
+                                    onSwitchToLogin()
+                                } else {
+                                    router.authPath = []
+                                }
+                            } else {
+                                errorMessage = authViewModel.errorMessage
+                            }
                         }
                     }
                     .padding(.top, 28)
@@ -82,5 +117,7 @@ struct NewPasswordView: View {
 }
 
 #Preview {
-    NavigationStack { NewPasswordView() }.environment(AppRouter())
+    NavigationStack { NewPasswordView() }
+        .environment(AppRouter())
+        .environment(PhoneAuthViewModel())
 }
