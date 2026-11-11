@@ -15,8 +15,8 @@ struct SplashView: View {
                 ForEach(0..<8, id: \.self) { index in
                     Circle()
                         .fill(Color.fiNavy.opacity(0.85 - Double(index) * 0.09))
-                        .frame(width: 8, height: 8)
-                        .offset(y: -76)
+                        .frame(width: 10, height: 10)
+                        .offset(y: -82)
                         .rotationEffect(.degrees(Double(index) * 45))
                 }
                 .rotationEffect(.degrees(isRotating ? 360 : 0))

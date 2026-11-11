@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Estructura de las pantallas de acceso: zona superior con el logo
+/// Estructura de las pantallas de acceso: zona superior con la imagen de fondo y logo
 /// y una hoja con esquinas redondeadas para el formulario.
 struct AuthLayout<Content: View>: View {
     @Environment(AppRouter.self) private var router
@@ -12,35 +12,55 @@ struct AuthLayout<Content: View>: View {
     var onBack: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
+    @State private var dragOffset: CGFloat = 0
+
     var body: some View {
         ZStack(alignment: .top) {
-            topColor.ignoresSafeArea()
+            // Fondo de la cabecera con la imagen oficial de Fiamas
+            ZStack(alignment: .top) {
+                Image("Fondo-Fiamas")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: topHeight + 40)
+                    .clipped()
+                    .ignoresSafeArea(edges: .top)
+            }
 
             VStack(spacing: 0) {
-                // Logo interactivo que regresa a la pantalla de bienvenida
-                Button(action: {
-                    router.popToRoot()
-                }) {
-                    FiamasLogo(layout: logoLayout, iconHeight: logoLayout == .horizontal ? 48 : 64)
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .frame(height: topHeight)
-                .overlay(alignment: .topLeading) {
+                // Header con logo interactivo y botón atrás
+                HStack(alignment: .center) {
                     if let onBack {
                         Button(action: onBack) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(Color.fiNavy)
                                 .frame(width: 42, height: 42)
-                                .background(Circle().fill(.white.opacity(0.75)))
+                                .background(Circle().fill(.white.opacity(0.85)))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Atrás")
-                        .padding(.leading, 20)
-                        .padding(.top, 16)
+                    } else {
+                        Spacer().frame(width: 42)
                     }
+
+                    Spacer()
+
+                    Button(action: {
+                        router.popToRoot()
+                    }) {
+                        Image("logo-completo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 38)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    Spacer().frame(width: 42)
                 }
+                .padding(.horizontal, 20)
+                .frame(height: topHeight)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -67,6 +87,23 @@ struct AuthLayout<Content: View>: View {
                         .fill(sheetColor)
                         .shadow(color: .black.opacity(0.06), radius: 12, y: -4)
                         .ignoresSafeArea(edges: .bottom)
+                )
+                .offset(y: max(0, dragOffset))
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if value.translation.height > 0 {
+                                dragOffset = value.translation.height
+                            }
+                        }
+                        .onEnded { value in
+                            if value.translation.height > 100 {
+                                onBack?()
+                            }
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                dragOffset = 0
+                            }
+                        }
                 )
             }
         }

@@ -7,6 +7,7 @@ struct LoginView: View {
     
     // Callbacks para interacción fluida dentro del sheet
     var onSwitchToRegister: (() -> Void)? = nil
+    var onSwitchToRecoverPassword: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
     
     @State private var phone = ""
@@ -73,7 +74,11 @@ struct LoginView: View {
                     }
 
                     Button {
-                        router.push(.recoverPassword)
+                        if let onSwitchToRecoverPassword {
+                            onSwitchToRecoverPassword()
+                        } else {
+                            router.push(.recoverPassword)
+                        }
                     } label: {
                         Text("¿Olvidaste tu contraseña?")
                             .font(.poppins(14, .medium))

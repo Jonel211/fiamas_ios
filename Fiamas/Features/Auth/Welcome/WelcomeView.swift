@@ -4,6 +4,9 @@ enum AuthSheetMode: Equatable {
     case welcome
     case login
     case register(qrCode: String?)
+    case recoverPassword
+    case verifyCode(phone: String)
+    case newPassword
 }
 
 struct WelcomeView: View {
@@ -11,7 +14,7 @@ struct WelcomeView: View {
     @State private var showWhatsAppSheet = false
     @State private var isShowingScanner = false
     
-    // Estado del panel desplegable (Welcome / Login / Register)
+    // Estado del panel desplegable
     @State private var sheetMode: AuthSheetMode = .welcome
     @State private var dragOffsetY: CGFloat = 0
 
@@ -20,7 +23,7 @@ struct WelcomeView: View {
         switch sheetMode {
         case .welcome:
             return Color(red: 0.09, green: 0.58, blue: 0.55)
-        case .login, .register:
+        case .login, .register, .recoverPassword, .verifyCode, .newPassword:
             return .white
         }
     }
@@ -31,18 +34,21 @@ struct WelcomeView: View {
             let screenWidth = geometry.size.width
             let safeTop = geometry.safeAreaInsets.top
             
-            // Altura base del header según la pantalla activa
+            // Altura base del header por pantalla
             let baseHeaderHeight: CGFloat = switch sheetMode {
             case .welcome: screenHeight * 0.44
             case .login: screenHeight * 0.40
+            case .recoverPassword: screenHeight * 0.44
+            case .verifyCode: screenHeight * 0.44
+            case .newPassword: screenHeight * 0.40
             case .register: screenHeight * 0.22
             }
             
-            // La altura real del header crece dinámicamente si el usuario arrastra hacia abajo (solo en login/register)
+            // La altura real del header crece dinámicamente al arrastrar hacia abajo
             let currentHeaderHeight = max(baseHeaderHeight, baseHeaderHeight + dragOffsetY)
             
             ZStack(alignment: .top) {
-                // MARK: - 1. Fondo base unificado del color de la tarjeta
+                // MARK: - 1. Fondo base unificado
                 baseBackgroundColor
                     .ignoresSafeArea()
                 
@@ -55,7 +61,7 @@ struct WelcomeView: View {
                         .frame(width: screenWidth, height: currentHeaderHeight + 40, alignment: .top)
                         .clipped()
                     
-                    // Íconos superiores (Logo y WhatsApp)
+                    // Íconos superiores limpios (Logo a la izquierda y WhatsApp a la derecha)
                     HStack(alignment: .center) {
                         Image("logo-completo")
                             .resizable()
@@ -86,7 +92,7 @@ struct WelcomeView: View {
                     Spacer(minLength: currentHeaderHeight - 20)
                     
                     VStack(spacing: 0) {
-                        // Indicador de arrastre (Pill Handle) - solo en Login y Registro
+                        // Indicador de arrastre (Pill Handle)
                         if sheetMode != .welcome {
                             Capsule()
                                 .fill(Color.gray.opacity(0.3))
@@ -106,6 +112,11 @@ struct WelcomeView: View {
                                         sheetMode = .register(qrCode: nil)
                                     }
                                 },
+                                onSwitchToRecoverPassword: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .recoverPassword
+                                    }
+                                },
                                 onDismiss: {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                                         sheetMode = .welcome
@@ -123,6 +134,46 @@ struct WelcomeView: View {
                                 onDismiss: {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                                         sheetMode = .welcome
+                                    }
+                                }
+                            )
+                        case .recoverPassword:
+                            RecoverPasswordView(
+                                onSwitchToVerifyCode: { phone in
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .verifyCode(phone: phone)
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .login
+                                    }
+                                }
+                            )
+                        case .verifyCode(let phone):
+                            VerifyCodeView(
+                                initialPhone: phone,
+                                onSwitchToNewPassword: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .newPassword
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .recoverPassword
+                                    }
+                                }
+                            )
+                        case .newPassword:
+                            NewPasswordView(
+                                onSwitchToLogin: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .login
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                        sheetMode = .verifyCode(phone: "")
                                     }
                                 }
                             )
@@ -146,7 +197,16 @@ struct WelcomeView: View {
                                 guard sheetMode != .welcome else { return }
                                 if value.translation.height > 110 || value.predictedEndTranslation.height > 200 {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        sheetMode = .welcome
+                                        switch sheetMode {
+                                        case .recoverPassword:
+                                            sheetMode = .login
+                                        case .verifyCode:
+                                            sheetMode = .recoverPassword
+                                        case .newPassword:
+                                            sheetMode = .verifyCode(phone: "")
+                                        default:
+                                            sheetMode = .welcome
+                                        }
                                         dragOffsetY = 0
                                     }
                                 } else {
