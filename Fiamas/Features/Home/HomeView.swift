@@ -13,21 +13,51 @@ struct HomeView: View {
     @State private var totalOwed: Double = 0
     @State private var errorMessage: String?
     @State private var isLoading = true
+    @State private var hasLoadedOnce = false
     @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
-        storeSummaries.map { summary in
-            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
-            return Store(
-                id: summary.tienda.id,
-                name: summary.tienda.nombre,
-                description: "\(fiados.count) fiados registrados",
-                date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
-                used: summary.saldoActual,
-                limit: summary.limiteCredito
-            )
+        if !storeSummaries.isEmpty {
+            return storeSummaries.map { summary in
+                let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
+                return Store(
+                    id: summary.tienda.id,
+                    name: summary.tienda.nombre,
+                    description: "\(fiados.count) fiados registrados",
+                    date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
+                    used: summary.saldoActual,
+                    limit: summary.limiteCredito
+                )
+            }
+            .sorted { $0.name < $1.name }
+        } else {
+            // Si storeSummaries está vacío pero hay fiados, mapear desde fiados
+            var dict: [String: Store] = [:]
+            for fiado in fiadosAPI {
+                if let tienda = fiado.tienda {
+                    if let existing = dict[tienda.id] {
+                        dict[tienda.id] = Store(
+                            id: tienda.id,
+                            name: existing.name,
+                            description: "Fiado pendiente",
+                            date: existing.date,
+                            used: existing.used + fiado.saldoPendiente,
+                            limit: existing.limit
+                        )
+                    } else {
+                        dict[tienda.id] = Store(
+                            id: tienda.id,
+                            name: tienda.nombre,
+                            description: "Fiado pendiente",
+                            date: String(fiado.fechaCreacion.prefix(10)),
+                            used: fiado.saldoPendiente,
+                            limit: 1000
+                        )
+                    }
+                }
+            }
+            return Array(dict.values).sorted { $0.name < $1.name }
         }
-        .sorted { $0.name < $1.name }
     }
 
     var body: some View {
@@ -51,15 +81,27 @@ struct HomeView: View {
                         .foregroundStyle(Color.fiTextSecondary)
                         .padding(.bottom, 16)
 
-                    if isLoading {
+                    if isLoading && !hasLoadedOnce {
                         ProgressView("Cargando...")
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
-                    } else if let errorMessage {
-                        Text(errorMessage)
-                            .font(.poppins(14))
-                            .foregroundStyle(Color.fiDanger)
-                            .padding(.top, 24)
+                    } else if let errorMessage, !hasLoadedOnce {
+                        VStack(spacing: 12) {
+                            Image(systemName: "wifi.exclamationmark")
+                                .font(.system(size: 40))
+                                .foregroundStyle(Color.fiDanger)
+                            Text(errorMessage)
+                                .font(.poppins(14))
+                                .foregroundStyle(Color.fiTextSecondary)
+                                .multilineTextAlignment(.center)
+                            Button("Reintentar") {
+                                Task { await loadData() }
+                            }
+                            .font(.poppins(14, .semibold))
+                            .foregroundStyle(Color.fiTeal)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
                     } else {
                         TotalOwedCard(total: String(format: "%.2f", totalOwed), score: clientScore, category: clientCategory)
                             .padding(.bottom, 28)
@@ -144,21 +186,29 @@ struct HomeView: View {
     }
     
     private func loadData() async {
-        isLoading = true
+        if !hasLoadedOnce { isLoading = true }
         errorMessage = nil
+
         async let debtsTask = DebtsService.shared.fetchMyDebts()
         async let summaryTask = SummaryService.shared.fetchMySummary()
+
         do {
             fiadosAPI = try await debtsTask
             let summary = try await summaryTask
-            storeSummaries = summary.stores
-            totalOwed = summary.totalOwed
+            if !summary.stores.isEmpty {
+                storeSummaries = summary.stores
+            }
+            totalOwed = summary.totalOwed > 0 ? summary.totalOwed : fiadosAPI.reduce(0.0) { $0 + $1.saldoPendiente }
             clientScore = summary.score
             clientCategory = summary.category
             profileStore.updateScoring(score: clientScore, category: clientCategory)
             await ReminderScheduler.sync(fiadosAPI)
+            hasLoadedOnce = true
         } catch {
-            errorMessage = "No se pudo cargar tu resumen: \(error.localizedDescription)"
+            print("Error cargando inicio: \(error.localizedDescription)")
+            if !hasLoadedOnce {
+                errorMessage = "No se pudo cargar tu resumen. Desliza para reintentar."
+            }
         }
         isLoading = false
     }
