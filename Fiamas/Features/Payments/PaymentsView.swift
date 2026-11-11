@@ -7,6 +7,7 @@ struct PaymentsView: View {
     // Datos del servidor
     @State private var pagosAPI: [PaymentAPI] = []
     @State private var isLoading = true
+    @State private var hasLoadedOnce = false
     
     // Filtros
     @State private var selectedStore: String? = nil
@@ -14,17 +15,14 @@ struct PaymentsView: View {
 
     // Helper para parsear fechas de forma segura
     private static func parseDate(_ dateString: String) -> Date {
-        // 1. ISO con milisegundos
         let isoFormatterMillis = ISO8601DateFormatter()
         isoFormatterMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = isoFormatterMillis.date(from: dateString) { return d }
         
-        // 2. ISO estándar
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime]
         if let d = isoFormatter.date(from: dateString) { return d }
         
-        // 3. Fallbacks de formatos comunes en bases de datos
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
         for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
@@ -49,7 +47,6 @@ struct PaymentsView: View {
         timeFormatter.locale = Locale(identifier: "es_ES")
         timeFormatter.dateFormat = "h:mm a"
         
-        // Estructura interna para ordenar cronológicamente
         struct TempGroup {
             let title: String
             let month: String
@@ -141,7 +138,7 @@ struct PaymentsView: View {
                 onTrailing: { router.push(.notifications) }
             )
 
-            if isLoading {
+            if isLoading && !hasLoadedOnce {
                 ProgressView("Cargando pagos...")
                     .frame(maxHeight: .infinity)
             } else if pagosAPI.isEmpty {
@@ -243,12 +240,15 @@ struct PaymentsView: View {
     
     // 5. Cargar los datos desde el servidor
     private func loadPayments() async {
-        isLoading = true
+        if !hasLoadedOnce { isLoading = true }
         do {
             pagosAPI = try await PaymentService.shared.fetchMyPayments()
+            hasLoadedOnce = true
         } catch {
             print("Error al cargar pagos: \(error.localizedDescription)")
-            pagosAPI = []
+            if !hasLoadedOnce {
+                pagosAPI = []
+            }
         }
         isLoading = false
     }

@@ -10,6 +10,27 @@ struct FiadosResponse: Decodable {
 struct TiendaInfo: Decodable {
     let id: String
     let nombre: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, nombre
+    }
+
+    init(id: String = "", nombre: String = "Tienda") {
+        self.id = id
+        self.nombre = nombre
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let str = try? container.decode(String.self, forKey: .id) {
+            id = str
+        } else if let intId = try? container.decode(Int.self, forKey: .id) {
+            id = String(intId)
+        } else {
+            id = ""
+        }
+        nombre = (try? container.decode(String.self, forKey: .nombre)) ?? "Tienda"
+    }
 }
 
 struct FiadoDetalleAPI: Decodable {
@@ -20,15 +41,15 @@ struct FiadoDetalleAPI: Decodable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        producto = try values.decodeIfPresent(ProductoFiadoAPI.self, forKey: .producto)
+        producto = try? values.decodeIfPresent(ProductoFiadoAPI.self, forKey: .producto)
         if let number = try? values.decode(Double.self, forKey: .cantidad) {
             cantidad = number
-        } else {
-            let text = try values.decode(String.self, forKey: .cantidad)
-            guard let number = Double(text) else {
-                throw DecodingError.dataCorruptedError(forKey: .cantidad, in: values, debugDescription: "Cantidad inválida")
-            }
+        } else if let intVal = try? values.decode(Int.self, forKey: .cantidad) {
+            cantidad = Double(intVal)
+        } else if let text = try? values.decode(String.self, forKey: .cantidad), let number = Double(text) {
             cantidad = number
+        } else {
+            cantidad = 1.0
         }
     }
 }
@@ -68,12 +89,18 @@ struct FiadoAPI: Decodable, Identifiable {
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
+        if let str = try? container.decode(String.self, forKey: .id) {
+            id = str
+        } else if let intId = try? container.decode(Int.self, forKey: .id) {
+            id = String(intId)
+        } else {
+            id = UUID().uuidString
+        }
         tienda = try? container.decode(TiendaInfo.self, forKey: .tienda)
         estado = (try? container.decode(String.self, forKey: .estado)) ?? "pendiente"
         fechaCreacion = (try? container.decode(String.self, forKey: .fechaCreacion)) ?? "Sin fecha"
-        fechaVencimiento = try container.decodeIfPresent(String.self, forKey: .fechaVencimiento)
-        detalles = try container.decode([FiadoDetalleAPI].self, forKey: .detalles)
+        fechaVencimiento = try? container.decodeIfPresent(String.self, forKey: .fechaVencimiento)
+        detalles = (try? container.decode([FiadoDetalleAPI].self, forKey: .detalles)) ?? []
         
         func decodeDouble(forKey key: CodingKeys) -> Double {
             if let val = try? container.decode(Double.self, forKey: key) { return val }
