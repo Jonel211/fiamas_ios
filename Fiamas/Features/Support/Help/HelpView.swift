@@ -24,7 +24,7 @@ struct HelpView: View {
                     SectionHeader(title: "Preguntas frecuentes")
                         .padding(.bottom, 12)
 
-                    VStack(spacing: 0) {
+                    VStack(spacing: 12) {
                         ForEach(faqs) { faq in
                             FAQRowView(faq: faq, isOpen: openFAQ.contains(faq.id)) {
                                 withAnimation(.spring(duration: 0.3)) {
@@ -35,12 +35,9 @@ struct HelpView: View {
                                     }
                                 }
                             }
-                            if faq.id != faqs.last?.id {
-                                FiDivider(leadingInset: 16)
-                            }
+                            .fiCard(padding: 0)
                         }
                     }
-                    .fiCard(padding: 0)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
@@ -56,7 +53,7 @@ struct HelpView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("¿Tienes alguna duda?")
                     .font(.poppins(18, .semibold))
-                Text("Estamos aquí para apoyarte con tu tienda.")
+                Text("Estamos aquí para ayudarte con tus fiados.")
                     .font(.poppins(14))
                     .opacity(0.9)
                     .padding(.bottom, 12)
