@@ -17,6 +17,7 @@ enum Route: Hashable {
     case changePassword
     case editProfile
     case help
+    case about
     
     // Legal
     case terms
