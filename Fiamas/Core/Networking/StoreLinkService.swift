@@ -151,3 +151,4 @@ class StoreLinkService {
         return (message, decoded.tienda, decoded.yaVinculado ?? false)
     }
 }
+
