@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuRowView: View {
     let icon: String
     let title: String
+    var detail: String? = nil
 
     var body: some View {
         HStack(spacing: 14) {
@@ -11,6 +12,11 @@ struct MenuRowView: View {
                 .font(.poppins(15, .medium))
                 .foregroundStyle(Color.fiTextPrimary)
             Spacer()
+            if let detail {
+                Text(detail)
+                    .font(.poppins(13))
+                    .foregroundStyle(Color.fiTextSecondary)
+            }
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Color.fiTextTertiary)
