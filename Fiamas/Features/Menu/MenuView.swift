@@ -1,5 +1,4 @@
 import SwiftUI
- 
 
 /// iOS-menu
 struct MenuView: View {
@@ -56,6 +55,23 @@ struct MenuView: View {
                     }
                     .buttonStyle(.plain)
                     .fiCard(padding: 0)
+                    .padding(.bottom, 24)
+
+                    GroupLabel(title: "Legal")
+                        .padding(.bottom, 8)
+
+                    VStack(spacing: 0) {
+                        Button { router.push(.terms) } label: {
+                            MenuRowView(icon: "doc.text", title: "Términos y condiciones")
+                        }
+                        FiDivider(leadingInset: 64)
+                        Button { router.push(.privacy) } label: {
+                            MenuRowView(icon: "lock.shield", title: "Política de privacidad")
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .fiCard(padding: 0)
+                    .padding(.bottom, 24)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)

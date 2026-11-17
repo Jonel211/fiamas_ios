@@ -37,7 +37,7 @@ final class AppRouter {
     }
 
     func logout() {
-        authPath = [.login]
+        authPath = [] // Se deja en blanco para cargar el WelcomeView con su diseño completo
         phase = .auth
     }
 }
