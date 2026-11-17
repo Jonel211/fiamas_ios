@@ -6,7 +6,8 @@ struct LinkStoreScannerSheet: View {
     var onStoreLinked: ((String) -> Void)?
 
     @State private var torchIsOn = false
-    @State private var scannedToken: String? = nil
+    @State private var hasDetectedCode = false
+    @State private var validToken: String? = nil
     @State private var storeInfo: TiendaDetalleQR? = nil
     @State private var isAlreadyLinked = false
     @State private var isLoadingInfo = false
@@ -29,7 +30,8 @@ struct LinkStoreScannerSheet: View {
                         handleScannedCode(code)
                     },
                     onError: { err in
-                        print("Scanner error: \(err)")
+                        errorMessage = "No se pudo iniciar la cámara: \(err)"
+                        hasDetectedCode = true
                     }
                 )
                 .ignoresSafeArea()
@@ -37,7 +39,6 @@ struct LinkStoreScannerSheet: View {
                 scannerOverlay
             }
 
-            // Barra superior
             VStack {
                 topBar
                     .padding(.horizontal, 20)
@@ -45,9 +46,8 @@ struct LinkStoreScannerSheet: View {
                 Spacer()
             }
 
-            // Tarjeta inferior modal con la tienda detectada
-            if let token = scannedToken {
-                storeDetectedCard(token: token)
+            if hasDetectedCode {
+                storeDetectedCard
             }
         }
         .onAppear {
@@ -100,7 +100,7 @@ struct LinkStoreScannerSheet: View {
                     .frame(width: 260, height: 260)
                     .background(RoundedRectangle(cornerRadius: 24).fill(Color.white.opacity(0.04)))
 
-                if scannedToken == nil {
+                if !hasDetectedCode {
                     Rectangle()
                         .fill(
                             LinearGradient(
@@ -126,14 +126,13 @@ struct LinkStoreScannerSheet: View {
         }
     }
 
-    // MARK: - Tarjeta de Tienda Detectada
-    private func storeDetectedCard(token: String) -> some View {
+    // MARK: - Tarjeta de Resultado
+    private var storeDetectedCard: some View {
         VStack {
             Spacer()
 
             VStack(spacing: 16) {
                 if let success = linkSuccessMessage {
-                    // Estado de Éxito
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 48))
@@ -145,7 +144,6 @@ struct LinkStoreScannerSheet: View {
                     }
                     .padding(.vertical, 16)
                 } else if isLoadingInfo {
-                    // Cargando información de la tienda
                     VStack(spacing: 12) {
                         ProgressView()
                             .tint(Color.fiTeal)
@@ -154,8 +152,32 @@ struct LinkStoreScannerSheet: View {
                             .foregroundStyle(Color.fiTextSecondary)
                     }
                     .padding(.vertical, 20)
-                } else {
-                    // Información de la Tienda
+                } else if let err = errorMessage, storeInfo == nil {
+                    // Estado de error en QR inválido o falla al consultar tienda
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 36))
+                            .foregroundStyle(Color.fiDanger)
+
+                        Text(err)
+                            .font(.poppins(14, .medium))
+                            .foregroundStyle(Color.fiTextPrimary)
+                            .multilineTextAlignment(.center)
+
+                        Button {
+                            resetScanner()
+                        } label: {
+                            Text("Escanear otro código")
+                                .font(.poppins(14, .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Capsule().fill(Color.fiTeal))
+                        }
+                        .padding(.top, 4)
+                    }
+                } else if let store = storeInfo, let token = validToken {
+                    // Información válida de la Tienda
                     HStack(spacing: 14) {
                         ZStack {
                             Circle()
@@ -167,11 +189,11 @@ struct LinkStoreScannerSheet: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(storeInfo?.nombre ?? "Tienda Fiamas")
+                            Text(store.nombre)
                                 .font(.poppins(17, .semibold))
                                 .foregroundStyle(Color.fiTextPrimary)
 
-                            if let dir = storeInfo?.direccion, !dir.isEmpty {
+                            if let dir = store.direccion, !dir.isEmpty {
                                 Text(dir)
                                     .font(.poppins(12))
                                     .foregroundStyle(Color.fiTextSecondary)
@@ -204,7 +226,6 @@ struct LinkStoreScannerSheet: View {
                             .multilineTextAlignment(.leading)
                     }
 
-                    // Botones de Acción
                     VStack(spacing: 10) {
                         if isAlreadyLinked {
                             FiButton(title: "Entendido", style: .accent) {
@@ -293,24 +314,25 @@ struct LinkStoreScannerSheet: View {
     }
 
     private func handleScannedCode(_ code: String) {
-        guard scannedToken == nil else { return }
+        guard !hasDetectedCode else { return }
 
-        // Extraer token UUID
-        guard let token = StoreLinkService.shared.extractToken(from: code) ?? (code.count == 36 ? code : nil) else {
-            errorMessage = "El código escaneado no corresponde a un QR válido de tienda."
+        guard let token = StoreLinkService.shared.extractToken(from: code) else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                self.scannedToken = code
+                self.hasDetectedCode = true
+                self.validToken = nil
+                self.storeInfo = nil
+                self.errorMessage = "El código escaneado no corresponde a un QR válido de tienda."
             }
             return
         }
 
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            self.scannedToken = token
+            self.hasDetectedCode = true
+            self.validToken = token
             self.isLoadingInfo = true
             self.errorMessage = nil
         }
 
-        // Consultar información de la tienda
         Task {
             do {
                 let result = try await StoreLinkService.shared.fetchStoreInfo(token: token)
@@ -321,15 +343,9 @@ struct LinkStoreScannerSheet: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.storeInfo = TiendaDetalleQR(
-                        id: token,
-                        nombre: "Tienda Fiamas",
-                        direccion: nil,
-                        telefono: nil,
-                        imagenUrl: nil,
-                        ruc: nil
-                    )
                     self.isLoadingInfo = false
+                    self.storeInfo = nil
+                    self.errorMessage = error.localizedDescription
                 }
             }
         }
@@ -345,14 +361,14 @@ struct LinkStoreScannerSheet: View {
                 self.isLinking = false
                 self.linkSuccessMessage = result.msg
                 let storeName = result.tienda?.nombre ?? storeInfo?.nombre ?? "la tienda"
-                
+
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 onStoreLinked?(storeName)
+            }
 
-                // Cerrar automáticamente tras 1.5 segundos
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    dismiss()
-                }
+            try? await Task.sleep(for: .seconds(1.4))
+            await MainActor.run {
+                dismiss()
             }
         } catch {
             await MainActor.run {
@@ -364,13 +380,17 @@ struct LinkStoreScannerSheet: View {
 
     private func resetScanner() {
         withAnimation {
-            scannedToken = nil
+            hasDetectedCode = false
+            validToken = nil
             storeInfo = nil
             isAlreadyLinked = false
             isLoadingInfo = false
             isLinking = false
             linkSuccessMessage = nil
             errorMessage = nil
+        }
+        laserOffset = -110
+        DispatchQueue.main.async {
             startLaserAnimation()
         }
     }

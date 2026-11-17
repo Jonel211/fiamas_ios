@@ -3,62 +3,62 @@ import SwiftUI
 /// iOS-pagos
 struct PaymentsView: View {
     @Environment(AppRouter.self) private var router
-    
+
     // Datos del servidor
     @State private var pagosAPI: [PaymentAPI] = []
     @State private var isLoading = true
     @State private var hasLoadedOnce = false
-    
+    @State private var errorMessage: String?
+    @State private var refreshBannerMessage: String?
+
     // Filtros
     @State private var selectedStore: String? = nil
     @State private var selectedMonth: String = ""
 
-    // Helper para parsear fechas de forma segura
     private static func parseDate(_ dateString: String) -> Date {
         let isoFormatterMillis = ISO8601DateFormatter()
         isoFormatterMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let d = isoFormatterMillis.date(from: dateString) { return d }
-        
+
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime]
         if let d = isoFormatter.date(from: dateString) { return d }
-        
+
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
         for fmt in ["yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
             df.dateFormat = fmt
             if let d = df.date(from: dateString) { return d }
         }
-        
+
         return Date()
     }
 
-    // 1. Traducimos los datos de la API a los grupos que espera tu UI
     private var allGroups: [PaymentGroup] {
         let monthFormatter = DateFormatter()
         monthFormatter.locale = Locale(identifier: "es_ES")
         monthFormatter.dateFormat = "MMMM yyyy"
-        
+
         let dateTitleFormatter = DateFormatter()
         dateTitleFormatter.locale = Locale(identifier: "es_ES")
         dateTitleFormatter.dateFormat = "dd 'de' MMM yyyy"
-        
+
         let timeFormatter = DateFormatter()
         timeFormatter.locale = Locale(identifier: "es_ES")
         timeFormatter.dateFormat = "h:mm a"
-        
+
         struct TempGroup {
             let title: String
             let month: String
             let date: Date
             var payments: [Payment]
         }
-        
+
         var dict: [String: TempGroup] = [:]
-        
+
         for api in pagosAPI {
             let date = Self.parseDate(api.fecha_pago)
-            
+
             let title: String
             if Calendar.current.isDateInToday(date) {
                 title = "HOY"
@@ -67,7 +67,7 @@ struct PaymentsView: View {
             } else {
                 title = dateTitleFormatter.string(from: date).uppercased()
             }
-            
+
             let monthString = monthFormatter.string(from: date).capitalized
             let storeName = api.fiado?.tienda?.nombre ?? "Tienda"
             let conceptText = (api.notas?.isEmpty == false) ? api.notas! : "Abono a cuenta"
@@ -75,7 +75,7 @@ struct PaymentsView: View {
             let formattedAmount = "S/ \(String(format: "%.2f", api.monto))"
             let timeText = timeFormatter.string(from: date)
             let fullDateText = dateTitleFormatter.string(from: date)
-            
+
             let payment = Payment(
                 id: api.id,
                 store: storeName,
@@ -90,14 +90,14 @@ struct PaymentsView: View {
                 fiadoTotal: api.fiado?.monto_total,
                 fiadoEstado: api.fiado?.estado
             )
-            
+
             if dict[title] == nil {
                 dict[title] = TempGroup(title: title, month: monthString, date: date, payments: [payment])
             } else {
                 dict[title]?.payments.append(payment)
             }
         }
-        
+
         return dict.values
             .sorted { g1, g2 in
                 if g1.title == "HOY" { return true }
@@ -109,16 +109,14 @@ struct PaymentsView: View {
             .map { PaymentGroup(title: $0.title, month: $0.month, payments: $0.payments) }
     }
 
-    // 2. Listas dinámicas para los filtros
     private var stores: [String] {
         Array(Set(allGroups.flatMap { $0.payments.map(\.store) })).sorted()
     }
-    
+
     private var months: [String] {
         Array(Set(allGroups.map { $0.month })).sorted(by: >)
     }
 
-    // 3. Aplicamos los filtros
     private var groups: [PaymentGroup] {
         allGroups
             .filter { selectedMonth.isEmpty || $0.month.caseInsensitiveCompare(selectedMonth) == .orderedSame }
@@ -138,45 +136,76 @@ struct PaymentsView: View {
                 onTrailing: { router.push(.notifications) }
             )
 
-            if isLoading && !hasLoadedOnce {
-                ProgressView("Cargando pagos...")
-                    .frame(maxHeight: .infinity)
-            } else if pagosAPI.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "creditcard")
-                        .font(.system(size: 56))
-                        .foregroundStyle(Color.fiTextTertiary)
-                        .padding(.top, 60)
-                    Text("Aún no tienes pagos registrados")
-                        .font(.poppins(16, .semibold))
-                        .foregroundStyle(Color.fiTextPrimary)
-                    Text("Tus abonos realizados en tienda aparecerán aquí.")
-                        .font(.poppins(13))
-                        .foregroundStyle(Color.fiTextSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
-                .frame(maxHeight: .infinity)
-            } else if groups.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .font(.system(size: 56))
-                        .foregroundStyle(Color.fiTextTertiary)
-                        .padding(.top, 60)
-                    Text("No hay pagos con estos filtros")
-                        .font(.poppins(16, .semibold))
-                        .foregroundStyle(Color.fiTextPrimary)
-                    Button("Restablecer filtros") {
-                        selectedStore = nil
-                        selectedMonth = ""
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let refreshBannerMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "wifi.exclamationmark")
+                            Text(refreshBannerMessage)
+                                .font(.poppins(12, .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(Color.fiDanger)
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.fiDanger.opacity(0.1)))
+                        .padding(.bottom, 12)
                     }
-                    .font(.poppins(14, .semibold))
-                    .foregroundStyle(Color.fiTeal)
-                }
-                .frame(maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
+
+                    if isLoading && !hasLoadedOnce {
+                        ProgressView("Cargando pagos...")
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
+                    } else if let errorMessage, !hasLoadedOnce {
+                        VStack(spacing: 12) {
+                            Image(systemName: "wifi.exclamationmark")
+                                .font(.system(size: 40))
+                                .foregroundStyle(Color.fiDanger)
+                            Text(errorMessage)
+                                .font(.poppins(14))
+                                .foregroundStyle(Color.fiTextSecondary)
+                                .multilineTextAlignment(.center)
+                            Button("Reintentar") {
+                                Task { await loadPayments() }
+                            }
+                            .font(.poppins(14, .semibold))
+                            .foregroundStyle(Color.fiTeal)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                    } else if pagosAPI.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "creditcard")
+                                .font(.system(size: 56))
+                                .foregroundStyle(Color.fiTextTertiary)
+                                .padding(.top, 60)
+                            Text("Aún no tienes pagos registrados")
+                                .font(.poppins(16, .semibold))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            Text("Tus abonos realizados en tienda aparecerán aquí.")
+                                .font(.poppins(13))
+                                .foregroundStyle(Color.fiTextSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else if groups.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .font(.system(size: 56))
+                                .foregroundStyle(Color.fiTextTertiary)
+                                .padding(.top, 60)
+                            Text("No hay pagos con estos filtros")
+                                .font(.poppins(16, .semibold))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            Button("Restablecer filtros") {
+                                selectedStore = nil
+                                selectedMonth = ""
+                            }
+                            .font(.poppins(14, .semibold))
+                            .foregroundStyle(Color.fiTeal)
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
                         filters
                             .padding(.bottom, 24)
 
@@ -200,13 +229,13 @@ struct PaymentsView: View {
                             .padding(.bottom, 24)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 24)
                 }
-                .refreshable {
-                    await loadPayments()
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+            }
+            .refreshable {
+                await loadPayments()
             }
         }
         .fiScreenBackground()
@@ -215,7 +244,6 @@ struct PaymentsView: View {
         }
     }
 
-    // 4. Filtros superiores
     private var filters: some View {
         HStack(spacing: 12) {
             Menu {
@@ -237,17 +265,22 @@ struct PaymentsView: View {
             }
         }
     }
-    
-    // 5. Cargar los datos desde el servidor
+
     private func loadPayments() async {
         if !hasLoadedOnce { isLoading = true }
+        errorMessage = nil
+        refreshBannerMessage = nil
+
         do {
             pagosAPI = try await PaymentService.shared.fetchMyPayments()
             hasLoadedOnce = true
+        } catch is CancellationError {
+            return
         } catch {
-            print("Error al cargar pagos: \(error.localizedDescription)")
             if !hasLoadedOnce {
-                pagosAPI = []
+                errorMessage = "No se pudieron cargar tus pagos: \(error.localizedDescription)"
+            } else {
+                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
             }
         }
         isLoading = false

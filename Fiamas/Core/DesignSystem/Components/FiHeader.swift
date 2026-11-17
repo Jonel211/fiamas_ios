@@ -7,31 +7,35 @@ struct FiHeader: View {
     let title: String
     var leading: Leading = .menu
     var trailingIcon: String? = "bell"
+    var trailingLabel: String = "Notificaciones"
     var trailingBadge: Bool = false
     var secondaryTrailingIcon: String? = nil
+    var secondaryTrailingLabel: String = ""
     var onLeading: () -> Void = {}
     var onTrailing: () -> Void = {}
     var onSecondaryTrailing: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 0) {
-            iconButton(leading == .menu ? "line.3.horizontal" : "chevron.left",
-                       label: leading == .menu ? "Menú" : "Atrás",
-                       action: onLeading)
+            iconButton(
+                leading == .menu ? "line.3.horizontal" : "chevron.left",
+                label: leading == .menu ? "Menú" : "Atrás",
+                action: onLeading
+            )
 
-            Text(title)
-                .font(.poppins(18, .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
+            Spacer()
 
             HStack(spacing: 0) {
                 if let secondaryTrailingIcon {
-                    iconButton(secondaryTrailingIcon, label: "Escanear QR", action: onSecondaryTrailing)
+                    iconButton(
+                        secondaryTrailingIcon,
+                        label: secondaryTrailingLabel.isEmpty ? secondaryTrailingIcon : secondaryTrailingLabel,
+                        action: onSecondaryTrailing
+                    )
                 }
 
                 if let trailingIcon {
-                    iconButton(trailingIcon, label: title, action: onTrailing)
+                    iconButton(trailingIcon, label: trailingLabel, action: onTrailing)
                         .overlay(alignment: .topTrailing) {
                             if trailingBadge {
                                 Circle()
@@ -46,11 +50,17 @@ struct FiHeader: View {
                 }
             }
         }
+        .overlay {
+            Text(title)
+                .font(.poppins(18, .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(.horizontal, secondaryTrailingIcon != nil ? 96 : 56)
+        }
         .padding(.horizontal, 8)
         .frame(height: 56)
         .frame(maxWidth: .infinity)
         .background(Color.fiTeal, ignoresSafeAreaEdges: [])
-        // La zona de la barra de estado queda blanca, como en el diseño
         .background(alignment: .top) {
             Color.white
                 .frame(height: 0)

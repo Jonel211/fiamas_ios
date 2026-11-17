@@ -12,52 +12,24 @@ struct HomeView: View {
     @State private var clientCategory: String = "Sin historial"
     @State private var totalOwed: Double = 0
     @State private var errorMessage: String?
+    @State private var refreshBannerMessage: String?
     @State private var isLoading = true
     @State private var hasLoadedOnce = false
     @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
-        if !storeSummaries.isEmpty {
-            return storeSummaries.map { summary in
-                let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
-                return Store(
-                    id: summary.tienda.id,
-                    name: summary.tienda.nombre,
-                    description: "\(fiados.count) fiados registrados",
-                    date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
-                    used: summary.saldoActual,
-                    limit: summary.limiteCredito
-                )
-            }
-            .sorted { $0.name < $1.name }
-        } else {
-            // Si storeSummaries está vacío pero hay fiados, mapear desde fiados
-            var dict: [String: Store] = [:]
-            for fiado in fiadosAPI {
-                if let tienda = fiado.tienda {
-                    if let existing = dict[tienda.id] {
-                        dict[tienda.id] = Store(
-                            id: tienda.id,
-                            name: existing.name,
-                            description: "Fiado pendiente",
-                            date: existing.date,
-                            used: existing.used + fiado.saldoPendiente,
-                            limit: existing.limit
-                        )
-                    } else {
-                        dict[tienda.id] = Store(
-                            id: tienda.id,
-                            name: tienda.nombre,
-                            description: "Fiado pendiente",
-                            date: String(fiado.fechaCreacion.prefix(10)),
-                            used: fiado.saldoPendiente,
-                            limit: 1000
-                        )
-                    }
-                }
-            }
-            return Array(dict.values).sorted { $0.name < $1.name }
+        storeSummaries.map { summary in
+            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
+            return Store(
+                id: summary.tienda.id,
+                name: summary.tienda.nombre,
+                description: "\(fiados.count) fiados registrados",
+                date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
+                used: summary.saldoActual,
+                limit: summary.limiteCredito
+            )
         }
+        .sorted { $0.name < $1.name }
     }
 
     var body: some View {
@@ -66,6 +38,7 @@ struct HomeView: View {
                 title: "Bienvenido",
                 trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
                 secondaryTrailingIcon: "qrcode.viewfinder",
+                secondaryTrailingLabel: "Vincular tienda por QR",
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) },
                 onSecondaryTrailing: { isShowingScanner = true }
@@ -73,6 +46,19 @@ struct HomeView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if let refreshBannerMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "wifi.exclamationmark")
+                            Text(refreshBannerMessage)
+                                .font(.poppins(12, .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(Color.fiDanger)
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.fiDanger.opacity(0.1)))
+                        .padding(.bottom, 12)
+                    }
+
                     Text("Hola, \(profileStore.profile.firstName)")
                         .font(.poppins(22, .semibold))
                         .foregroundStyle(Color.fiTextPrimary)
@@ -106,25 +92,8 @@ struct HomeView: View {
                         TotalOwedCard(total: String(format: "%.2f", totalOwed), score: clientScore, category: clientCategory)
                             .padding(.bottom, 28)
 
-                        HStack {
-                            SectionHeader(title: "Tiendas vinculadas", trailing: "\(mappedStores.count) tiendas")
-                            Spacer()
-                            Button {
-                                isShowingScanner = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "qrcode.viewfinder")
-                                    Text("Vincular")
-                                }
-                                .font(.poppins(13, .semibold))
-                                .foregroundStyle(Color.fiTeal)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.fiTealSoft))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.bottom, 12)
+                        SectionHeader(title: "Tiendas vinculadas", trailing: "\(mappedStores.count) tiendas")
+                            .padding(.bottom, 12)
 
                         if mappedStores.isEmpty {
                             VStack(spacing: 12) {
@@ -173,8 +142,7 @@ struct HomeView: View {
         }
         .fiScreenBackground()
         .fullScreenCover(isPresented: $isShowingScanner) {
-            LinkStoreScannerSheet { linkedStore in
-                isShowingScanner = false
+            LinkStoreScannerSheet { _ in
                 Task {
                     await loadData()
                 }
@@ -184,96 +152,98 @@ struct HomeView: View {
             await loadData()
         }
     }
-    
+
     private func loadData() async {
         if !hasLoadedOnce { isLoading = true }
         errorMessage = nil
+        refreshBannerMessage = nil
 
         async let debtsTask = DebtsService.shared.fetchMyDebts()
         async let summaryTask = SummaryService.shared.fetchMySummary()
 
         do {
-            fiadosAPI = try await debtsTask
-            let summary = try await summaryTask
-            if !summary.stores.isEmpty {
-                storeSummaries = summary.stores
-            }
-            totalOwed = summary.totalOwed > 0 ? summary.totalOwed : fiadosAPI.reduce(0.0) { $0 + $1.saldoPendiente }
+            let (debts, summary) = try await (debtsTask, summaryTask)
+            fiadosAPI = debts
+            storeSummaries = summary.stores
+            totalOwed = summary.totalOwed
             clientScore = summary.score
             clientCategory = summary.category
             profileStore.updateScoring(score: clientScore, category: clientCategory)
             await ReminderScheduler.sync(fiadosAPI)
             hasLoadedOnce = true
+        } catch is CancellationError {
+            return
         } catch {
-            print("Error cargando inicio: \(error.localizedDescription)")
             if !hasLoadedOnce {
-                errorMessage = "No se pudo cargar tu resumen. Desliza para reintentar."
+                errorMessage = "No se pudo cargar tu resumen: \(error.localizedDescription)"
+            } else {
+                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
             }
         }
         isLoading = false
     }
-}
+    
+    private struct TotalOwedCard: View {
+        let total: String
+        let score: Int?
+        let category: String
 
-private struct TotalOwedCard: View {
-    let total: String
-    let score: Int?
-    let category: String
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Total debiendo")
+                    .font(.poppins(14, .medium))
+                    .foregroundStyle(.white.opacity(0.85))
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Total debiendo")
-                .font(.poppins(14, .medium))
-                .foregroundStyle(.white.opacity(0.85))
+                Text("S/ \(total)")
+                    .font(.poppins(36, .bold))
+                    .foregroundStyle(.white)
+                    .padding(.top, 2)
 
-            Text("S/ \(total)")
-                .font(.poppins(36, .bold))
-                .foregroundStyle(.white)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Label("Score crediticio", systemImage: "chart.line.uptrend.xyaxis")
-                        .font(.poppins(13, .medium))
-                    Spacer()
-                    StatusBadge(
-                        text: category,
-                        icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
-                        foreground: (score ?? 100) < 50 ? .fiDanger : .fiTealDark,
-                        background: .white
-                    )
-                }
-                .foregroundStyle(.white)
-
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(score.map(String.init) ?? "—")
-                        .font(.poppins(24, .semibold))
-                    Text("/100")
-                        .font(.poppins(13))
-                        .opacity(0.8)
-                }
-                .foregroundStyle(.white)
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.25))
-                        Capsule()
-                            .fill((score ?? 0) >= 75 ? Color.fiGold : ((score ?? 0) >= 50 ? Color.orange : Color.fiDanger))
-                            .frame(width: geo.size.width * Double(min(max(score ?? 0, 0), 100)) / 100.0)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Score crediticio", systemImage: "chart.line.uptrend.xyaxis")
+                            .font(.poppins(13, .medium))
+                        Spacer()
+                        StatusBadge(
+                            text: category,
+                            icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
+                            foreground: (score ?? 100) < 50 ? .fiDanger : .fiTealDark,
+                            background: .white
+                        )
                     }
+                    .foregroundStyle(.white)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(score.map(String.init) ?? "—")
+                            .font(.poppins(24, .semibold))
+                        Text("/100")
+                            .font(.poppins(13))
+                            .opacity(0.8)
+                    }
+                    .foregroundStyle(.white)
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.25))
+                            Capsule()
+                                .fill((score ?? 0) >= 75 ? Color.fiGold : ((score ?? 0) >= 50 ? Color.orange : Color.fiDanger))
+                                .frame(width: geo.size.width * Double(min(max(score ?? 0, 0), 100)) / 100.0)
+                        }
+                    }
+                    .frame(height: 6)
                 }
-                .frame(height: 6)
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.14)))
+                .padding(.top, 16)
             }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.14)))
-            .padding(.top, 16)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .shadow(color: Color.fiTealDark.opacity(0.3), radius: 14, y: 8)
+            )
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient(colors: [.fiTeal, .fiTealDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .shadow(color: Color.fiTealDark.opacity(0.3), radius: 14, y: 8)
-        )
     }
 }
 
