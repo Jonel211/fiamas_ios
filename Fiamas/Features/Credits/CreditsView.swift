@@ -2,55 +2,45 @@ import SwiftUI
 
 struct CreditsView: View {
     @Environment(AppRouter.self) private var router
-    
+
     @State private var fiadosAPI: [FiadoAPI] = []
     @State private var storeSummaries: [StoreSummary] = []
     @State private var isLoading = true
     @State private var hasLoadedOnce = false
-    @State private var errorMessage: String? = nil
+    @State private var errorMessage: String?
+    @State private var refreshBannerMessage: String?
     @State private var expanded: Set<String> = []
 
     var mappedSections: [(store: Store, credits: [Credit])] {
-        let storeNames: [String: String] = Dictionary(
-            uniqueKeysWithValues: storeSummaries.map { ($0.tienda.id, $0.tienda.nombre) }
-        )
-        let storeLimits: [String: Double] = Dictionary(
-            uniqueKeysWithValues: storeSummaries.map { ($0.tienda.id, $0.limiteCredito) }
-        )
-        let storeBalances: [String: Double] = Dictionary(
-            uniqueKeysWithValues: storeSummaries.map { ($0.tienda.id, $0.saldoActual) }
-        )
-
-        let grouped = Dictionary(grouping: fiadosAPI) { $0.tienda?.id ?? "unknown" }
-
-        return grouped.map { (storeId, fiados) in
-            let storeName = storeNames[storeId] ?? fiados.first?.tienda?.nombre ?? "Tienda Desconocida"
-            let totalPending = storeBalances[storeId] ?? fiados.reduce(0) { $0 + $1.saldoPendiente }
-            let limit = storeLimits[storeId] ?? 1000
-
+        storeSummaries.map { summary in
+            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
             let store = Store(
-                id: storeId,
-                name: storeName,
-                description: "",
+                id: summary.tienda.id,
+                name: summary.tienda.nombre,
+                description: "\(fiados.count) fiados registrados",
                 date: "",
-                used: totalPending,
-                limit: limit
+                used: summary.saldoActual,
+                limit: summary.limiteCredito
             )
-
             let credits = fiados.map { f in
-                let uiStatus: Credit.Status = (f.estado.lowercased() == "vencido") ? .overdue : .pending
-                let footnoteText = f.daysUntilDue.map { days in
-                    days < 0 ? "Vencido hace \(-days) días" : (days == 0 ? "Vence hoy" : "Vence en \(days) días")
-                } ?? "Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
+                let items = f.detalles.compactMap { detalle in
+                    detalle.producto.map { "\($0.nombre) x\(String(format: "%g", detalle.cantidad))" }
+                }.joined(separator: ", ")
+
+                let status: Credit.Status
+                if f.estado == "pagado" { status = .paid }
+                else if f.estado == "cancelado" { status = .cancelled }
+                else if (f.daysUntilDue ?? 0) < 0 { status = .overdue }
+                else if f.estado == "parcial" { status = .partial }
+                else { status = .pending }
 
                 return Credit(
+                    id: f.id,
                     amount: "S/ \(String(format: "%.2f", f.montoTotal))",
-                    items: f.detalles.isEmpty ? "Fiado sin detalle" : f.detalles.map {
-                        "\($0.producto?.nombre ?? "Producto") (\(Int($0.cantidad)))"
-                    }.joined(separator: ", "),
-                    date: String(f.fechaCreacion.prefix(10)),
-                    status: uiStatus,
-                    footnote: footnoteText
+                    items: items.isEmpty ? "Fiado del \(f.fechaCreacion.prefix(10))" : items,
+                    date: f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? String(f.fechaCreacion.prefix(10)),
+                    status: status,
+                    footnote: "\(f.estado.capitalized) · Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
                 )
             }
             return (store, credits)
@@ -69,6 +59,18 @@ struct CreditsView: View {
 
             ScrollView {
                 VStack(spacing: 14) {
+                    if let refreshBannerMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "wifi.exclamationmark")
+                            Text(refreshBannerMessage)
+                                .font(.poppins(12, .medium))
+                            Spacer()
+                        }
+                        .foregroundStyle(Color.fiDanger)
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.fiDanger.opacity(0.1)))
+                    }
+
                     if isLoading && !hasLoadedOnce {
                         ProgressView("Cargando fiados...")
                             .padding(.top, 40)
@@ -130,26 +132,30 @@ struct CreditsView: View {
             await loadDebts()
         }
     }
-    
+
     private func loadDebts() async {
         if !hasLoadedOnce { isLoading = true }
         errorMessage = nil
+        refreshBannerMessage = nil
+
+        async let debts = DebtsService.shared.fetchMyDebts()
+        async let summary = SummaryService.shared.fetchMySummary()
+
         do {
-            async let debts = DebtsService.shared.fetchMyDebts()
-            async let summary = SummaryService.shared.fetchMySummary()
-            fiadosAPI = try await debts
-            let summaryResult = try await summary
-            if !summaryResult.stores.isEmpty {
-                storeSummaries = summaryResult.stores
-            }
+            let (debtsResult, summaryResult) = try await (debts, summary)
+            fiadosAPI = debtsResult
+            storeSummaries = summaryResult.stores
             if let firstStore = mappedSections.first?.store.id, expanded.isEmpty {
                 expanded.insert(firstStore)
             }
             hasLoadedOnce = true
+        } catch is CancellationError {
+            return
         } catch {
-            print("Error cargando fiados: \(error.localizedDescription)")
             if !hasLoadedOnce {
-                errorMessage = "No se pudieron cargar tus fiados. Desliza para reintentar."
+                errorMessage = "No se pudieron cargar tus fiados: \(error.localizedDescription)"
+            } else {
+                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
             }
         }
         isLoading = false

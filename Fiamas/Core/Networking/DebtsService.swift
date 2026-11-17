@@ -11,11 +11,9 @@ struct TiendaInfo: Decodable {
     let id: String
     let nombre: String
 
-    enum CodingKeys: String, CodingKey {
-        case id, nombre
-    }
+    enum CodingKeys: String, CodingKey { case id, nombre }
 
-    init(id: String = "", nombre: String = "Tienda") {
+    init(id: String, nombre: String) {
         self.id = id
         self.nombre = nombre
     }
@@ -27,7 +25,10 @@ struct TiendaInfo: Decodable {
         } else if let intId = try? container.decode(Int.self, forKey: .id) {
             id = String(intId)
         } else {
-            id = ""
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "ID de tienda inválido")
+            )
         }
         nombre = (try? container.decode(String.self, forKey: .nombre)) ?? "Tienda"
     }
@@ -44,12 +45,10 @@ struct FiadoDetalleAPI: Decodable {
         producto = try? values.decodeIfPresent(ProductoFiadoAPI.self, forKey: .producto)
         if let number = try? values.decode(Double.self, forKey: .cantidad) {
             cantidad = number
-        } else if let intVal = try? values.decode(Int.self, forKey: .cantidad) {
-            cantidad = Double(intVal)
         } else if let text = try? values.decode(String.self, forKey: .cantidad), let number = Double(text) {
             cantidad = number
         } else {
-            cantidad = 1.0
+            cantidad = 0
         }
     }
 }
@@ -81,12 +80,12 @@ struct FiadoAPI: Decodable, Identifiable {
               let dueDate else { return nil }
         return Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: .now), to: dueDate).day
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id, tienda, estado
         case montoTotal, montoPagado, saldoPendiente, fechaCreacion, fechaVencimiento, detalles
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let str = try? container.decode(String.self, forKey: .id) {
@@ -94,21 +93,24 @@ struct FiadoAPI: Decodable, Identifiable {
         } else if let intId = try? container.decode(Int.self, forKey: .id) {
             id = String(intId)
         } else {
-            id = UUID().uuidString
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "ID de fiado inválido")
+            )
         }
-        tienda = try? container.decode(TiendaInfo.self, forKey: .tienda)
+
+        tienda = try? container.decodeIfPresent(TiendaInfo.self, forKey: .tienda)
         estado = (try? container.decode(String.self, forKey: .estado)) ?? "pendiente"
         fechaCreacion = (try? container.decode(String.self, forKey: .fechaCreacion)) ?? "Sin fecha"
         fechaVencimiento = try? container.decodeIfPresent(String.self, forKey: .fechaVencimiento)
-        detalles = (try? container.decode([FiadoDetalleAPI].self, forKey: .detalles)) ?? []
-        
+        detalles = (try? container.decodeIfPresent([FiadoDetalleAPI].self, forKey: .detalles)) ?? []
+
         func decodeDouble(forKey key: CodingKeys) -> Double {
             if let val = try? container.decode(Double.self, forKey: key) { return val }
-            if let val = try? container.decode(Int.self, forKey: key) { return Double(val) }
             if let str = try? container.decode(String.self, forKey: key), let val = Double(str) { return val }
             return 0.0
         }
-        
+
         montoTotal = decodeDouble(forKey: .montoTotal)
         montoPagado = decodeDouble(forKey: .montoPagado)
         saldoPendiente = decodeDouble(forKey: .saldoPendiente)
@@ -129,7 +131,6 @@ enum ReminderScheduler {
                 .map(\.identifier).filter { $0.hasPrefix("fiamas-fiado-") }
             center.removePendingNotificationRequests(withIdentifiers: previous)
 
-            // iOS limita las notificaciones pendientes: priorizar los vencimientos próximos.
             for fiado in fiados.filter({ ($0.daysUntilDue ?? -1) > 0 })
                 .sorted(by: { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }).prefix(30) {
                 guard let dueDate = fiado.dueDate, let days = fiado.daysUntilDue, days > 0 else { continue }
@@ -159,7 +160,7 @@ enum ReminderScheduler {
 class DebtsService {
     static let shared = DebtsService()
     private init() {}
-    
+
     func fetchMyDebts() async throws -> [FiadoAPI] {
         let response: FiadosResponse = try await APIClient.shared.request(endpoint: "/app-cliente/mis-fiados")
         return response.fiados
