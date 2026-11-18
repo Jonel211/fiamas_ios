@@ -91,7 +91,7 @@ struct HomeView: View {
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await debtsStore.refresh(profileStore: profileStore) }
+                                Task { await debtsStore.refresh(profileStore: profileStore, manually: true) }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
@@ -147,7 +147,7 @@ struct HomeView: View {
                 .padding(.bottom, 24)
             }
             .refreshable {
-                await debtsStore.refresh(profileStore: profileStore)
+                await debtsStore.refresh(profileStore: profileStore, manually: true)
             }
         }
         .fiScreenBackground()
