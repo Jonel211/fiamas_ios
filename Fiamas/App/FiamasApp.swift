@@ -10,7 +10,6 @@ struct FiamasApp: App {
             RootView()
                 .environment(router)
                 .environment(profileStore)
-                .preferredColorScheme(.light)
         }
     }
 }
