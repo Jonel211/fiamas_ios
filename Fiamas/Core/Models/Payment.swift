@@ -4,6 +4,7 @@ struct Payment: Identifiable, Hashable {
     let id: String
     let store: String
     var concept: String
+    var products: [String] // <--- NUEVO: Lista de productos individuales
     var amount: String
     var amountValue: Double
     var time: String
@@ -18,6 +19,7 @@ struct Payment: Identifiable, Hashable {
         id: String = UUID().uuidString,
         store: String,
         concept: String = "Abono Víveres",
+        products: [String] = [], // <--- NUEVO
         amount: String = "S/ 50.00",
         amountValue: Double = 50.0,
         time: String = "4:15 pm",
@@ -31,6 +33,7 @@ struct Payment: Identifiable, Hashable {
         self.id = id
         self.store = store
         self.concept = concept
+        self.products = products
         self.amount = amount
         self.amountValue = amountValue
         self.time = time
@@ -47,7 +50,6 @@ struct Payment: Identifiable, Hashable {
 struct PaymentGroup: Identifiable {
     let id = UUID()
     let title: String
-    /// Mes al que pertenece (ej. "septiembre 2026")
     var month: String
     let payments: [Payment]
 }

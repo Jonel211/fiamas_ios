@@ -54,12 +54,14 @@ struct PaymentAPI: Decodable, Identifiable {
         let monto_total: Double
         let estado: String
         let tienda: TiendaInfo?
+        let productos: [String]? //  ¡AQUÍ ESTÁ LA PROPIEDAD QUE FALTABA!
         
         enum CodingKeys: String, CodingKey {
             case id
             case monto_total
             case estado
             case tienda
+            case productos
         }
         
         init(from decoder: Decoder) throws {
@@ -85,6 +87,7 @@ struct PaymentAPI: Decodable, Identifiable {
             
             estado = (try? container.decode(String.self, forKey: .estado)) ?? "pendiente"
             tienda = try? container.decode(TiendaInfo.self, forKey: .tienda)
+            productos = try? container.decodeIfPresent([String].self, forKey: .productos) // 👈 Decodificación segura del arreglo
         }
     }
     

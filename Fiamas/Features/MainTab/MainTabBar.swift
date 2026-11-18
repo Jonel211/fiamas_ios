@@ -17,7 +17,7 @@ struct MainTabBar: View {
                         Text(item.title)
                             .font(.poppins(12, isSelected ? .semibold : .medium))
                     }
-                    .foregroundStyle(isSelected ? Color.fiTeal : Color.fiTextTertiary)
+                    .foregroundStyle(isSelected ? Color.fiGold : Color.fiTextTertiary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                     .contentShape(Rectangle())

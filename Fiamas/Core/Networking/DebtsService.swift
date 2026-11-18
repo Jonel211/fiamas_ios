@@ -37,6 +37,7 @@ struct TiendaInfo: Decodable {
 struct FiadoDetalleAPI: Decodable {
     let producto: ProductoFiadoAPI?
     let cantidad: Double
+    
 
     private enum CodingKeys: String, CodingKey { case producto, cantidad }
 

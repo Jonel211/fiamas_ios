@@ -4,14 +4,12 @@ import SwiftUI
 struct PaymentsView: View {
     @Environment(AppRouter.self) private var router
 
-    // Datos del servidor
     @State private var pagosAPI: [PaymentAPI] = []
     @State private var isLoading = true
     @State private var hasLoadedOnce = false
     @State private var errorMessage: String?
     @State private var refreshBannerMessage: String?
 
-    // Filtros
     @State private var selectedStore: String? = nil
     @State private var selectedMonth: String = ""
 
@@ -70,7 +68,34 @@ struct PaymentsView: View {
 
             let monthString = monthFormatter.string(from: date).capitalized
             let storeName = api.fiado?.tienda?.nombre ?? "Tienda"
-            let conceptText = (api.notas?.isEmpty == false) ? api.notas! : "Abono a cuenta"
+            
+            // --- EXTRACCIÓN DE PRODUCTOS DEL BACKEND ACTUALIZADO ---
+            var extractedProducts: [String] = []
+            
+            if let serverProducts = api.fiado?.productos, !serverProducts.isEmpty {
+                extractedProducts = serverProducts
+            } else {
+                let rawNotes = api.notas ?? ""
+                let lowerNotes = rawNotes.lowercased()
+                
+                if !rawNotes.isEmpty && rawNotes != "null" &&
+                   !lowerNotes.contains("abono a cuenta") &&
+                   !lowerNotes.contains("abono correspondiente") {
+                    if rawNotes.contains(",") {
+                        extractedProducts = rawNotes.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    } else if rawNotes.contains(" y ") {
+                        extractedProducts = rawNotes.components(separatedBy: " y ").map { $0.trimmingCharacters(in: .whitespaces) }
+                    } else {
+                        extractedProducts = [rawNotes]
+                    }
+                }
+            }
+            
+            if extractedProducts.isEmpty {
+                extractedProducts = ["Abono correspondiente a cuenta"]
+            }
+            // -------------------------------------------------------
+
             let methodText = api.metodo_pago.capitalized
             let formattedAmount = "S/ \(String(format: "%.2f", api.monto))"
             let timeText = timeFormatter.string(from: date)
@@ -79,7 +104,8 @@ struct PaymentsView: View {
             let payment = Payment(
                 id: api.id,
                 store: storeName,
-                concept: conceptText,
+                concept: api.notas?.isEmpty == false ? api.notas! : "Abono a cuenta",
+                products: extractedProducts,
                 amount: formattedAmount,
                 amountValue: api.monto,
                 time: timeText,
@@ -101,9 +127,9 @@ struct PaymentsView: View {
         return dict.values
             .sorted { g1, g2 in
                 if g1.title == "HOY" { return true }
-                if g2.title == "HOY" { return false }
+                if g1.title == "HOY" { return false }
                 if g1.title == "AYER" { return true }
-                if g2.title == "AYER" { return false }
+                if g1.title == "AYER" { return false }
                 return g1.date > g2.date
             }
             .map { PaymentGroup(title: $0.title, month: $0.month, payments: $0.payments) }
@@ -258,7 +284,7 @@ struct PaymentsView: View {
             Menu {
                 Button("Todos los meses") { selectedMonth = "" }
                 ForEach(months, id: \.self) { month in
-                    Button(month) { selectedMonth = month }
+                    Button(selectedMonth == month ? "✓ \(month)" : month) { selectedMonth = month }
                 }
             } label: {
                 FilterPill(icon: "calendar", title: selectedMonth.isEmpty ? "Todos los meses" : selectedMonth)
@@ -287,7 +313,6 @@ struct PaymentsView: View {
     }
 }
 
-/// Botón de filtro con ícono y flecha.
 private struct FilterPill: View {
     let icon: String
     let title: String
@@ -312,8 +337,4 @@ private struct FilterPill: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(.white))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.fiBorder, lineWidth: 1))
     }
-}
-
-#Preview {
-    PaymentsView().environment(AppRouter())
 }

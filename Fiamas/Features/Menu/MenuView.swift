@@ -34,7 +34,8 @@ struct MenuView: View {
 
                     VStack(spacing: 0) {
                         Button { router.push(.changePassword) } label: {
-                            MenuRowView(icon: "lock", title: "Cambiar contraseña")
+                            // Icono nativo para contraseña/seguridad
+                            MenuRowView(icon: "lock.fill", title: "Cambiar contraseña")
                         }
                     }
                     .buttonStyle(.plain)
@@ -46,14 +47,17 @@ struct MenuView: View {
 
                     VStack(spacing: 0) {
                         Button { router.push(.help) } label: {
-                            MenuRowView(icon: "questionmark.circle", title: "Centro de ayuda")
+                            // Icono nativo de ayuda
+                            MenuRowView(icon: "questionmark.circle.fill", title: "Centro de ayuda")
                         }
                         FiDivider(leadingInset: 64)
                         Button { router.push(.about) } label: {
-                            MenuRowView(icon: "info.circle", title: "Acerca de Fiamas", detail: AppVersion.short)
+                            // Icono nativo de información
+                            MenuRowView(icon: "info.circle.fill", title: "Acerca de Fiamas", detail: AppVersion.short)
                         }
                         FiDivider(leadingInset: 64)
                         ShareLink(item: shareMessage) {
+                            // Icono nativo de compartir
                             MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
                         }
                     }
@@ -66,11 +70,13 @@ struct MenuView: View {
 
                     VStack(spacing: 0) {
                         Button { router.push(.terms) } label: {
-                            MenuRowView(icon: "doc.text", title: "Términos y condiciones")
+                            // Icono nativo de documentos legales
+                            MenuRowView(icon: "doc.text.fill", title: "Términos y condiciones")
                         }
                         FiDivider(leadingInset: 64)
                         Button { router.push(.privacy) } label: {
-                            MenuRowView(icon: "lock.shield", title: "Política de privacidad")
+                            // Icono nativo de escudo/privacidad
+                            MenuRowView(icon: "checkmark.shield.fill", title: "Política de privacidad")
                         }
                     }
                     .buttonStyle(.plain)
