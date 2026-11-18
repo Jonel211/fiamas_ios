@@ -5,8 +5,7 @@ struct MenuView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProfileStore.self) private var profileStore
     @State private var isConfirmingLogout = false
-
-    private let shareMessage = "Revisa tus fiados y pagos con Fiamas."
+    @State private var isShowingShareSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -65,8 +64,7 @@ struct MenuView: View {
                             MenuRowView(icon: "info.circle.fill", title: "Acerca de Fiamas", detail: AppVersion.short)
                         }
                         FiDivider(leadingInset: 64)
-                        ShareLink(item: shareMessage) {
-                            // Icono nativo de compartir
+                        Button { isShowingShareSheet = true } label: {
                             MenuRowView(icon: "square.and.arrow.up", title: "Compartir aplicación")
                         }
                     }
@@ -109,6 +107,13 @@ struct MenuView: View {
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $isShowingShareSheet) {
+            ShareFiamasSheet()
+                .presentationDetents([.height(260)])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(Color(uiColor: .systemBackground))
+                .presentationCornerRadius(24)
+        }
         .confirmationDialog("¿Quieres cerrar sesión?", isPresented: $isConfirmingLogout, titleVisibility: .visible) {
             Button("Cerrar sesión", role: .destructive) {
                 AuthService.shared.logout()
@@ -116,6 +121,90 @@ struct MenuView: View {
                 profileStore.reload()
             }
         }
+    }
+}
+
+private struct ShareFiamasSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var copied = false
+    @State private var resetTask: Task<Void, Never>?
+
+    private let link = "https://fiamas.app/descargar"
+
+    var body: some View {
+        VStack(spacing: 24) {
+            HStack(spacing: 12) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.fiTeal)
+                    .frame(width: 48, height: 48)
+                    .background(Circle().fill(Color.fiTealSoft))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Compartir Fiamas")
+                        .font(.poppins(17, .semibold))
+                        .foregroundStyle(Color.fiTextPrimary)
+                    Text("Invita a clientes u otros tenderos")
+                        .font(.poppins(13))
+                        .foregroundStyle(Color.fiTextSecondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.fiTextSecondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Cerrar")
+            }
+
+            HStack(spacing: 10) {
+                Image(systemName: "link")
+                    .foregroundStyle(Color.fiTeal)
+
+                Text(link)
+                    .font(.poppins(12))
+                    .foregroundStyle(Color.fiTextPrimary)
+                    .lineLimit(2)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    UIPasteboard.general.string = link
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    copied = true
+                    resetTask?.cancel()
+                    resetTask = Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        if !Task.isCancelled { copied = false }
+                    }
+                } label: {
+                    Label(copied ? "Copiado" : "Copiar", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .font(.poppins(13, .semibold))
+                        .foregroundStyle(Color.fiTeal)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(copied ? "Enlace copiado" : "Copiar enlace")
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(uiColor: .secondarySystemBackground)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(uiColor: .separator).opacity(0.5), lineWidth: 1))
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 32)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color(uiColor: .separator).opacity(0.35))
+                .frame(height: 1)
+                .padding(.horizontal, 24)
+        }
+        .onDisappear { resetTask?.cancel() }
     }
 }
 
