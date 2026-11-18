@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProfileStore.self) private var store
     @State private var isChoosingPhoto = false
+    @State private var hasLoadedOnce = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,11 +72,13 @@ struct ProfileView: View {
                 store.setPhoto(nil)
             }
         )
-        .task {
+        .task(id: router.activeTab) {
+            guard router.activeTab == .profile, !hasLoadedOnce else { return }
             await store.refreshFromBackend()
             if let summary = try? await SummaryService.shared.fetchMySummary() {
                 store.updateScoring(score: summary.score, category: summary.category)
             }
+            hasLoadedOnce = true
         }
     }
 

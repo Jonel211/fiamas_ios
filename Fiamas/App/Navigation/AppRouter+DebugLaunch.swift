@@ -21,10 +21,11 @@ extension AppRouter {
         case "perfil": phase = .main; initialTab = .profile
         case "detalle": phase = .main; mainPath = [.paymentDetail(nil)]
         case "cambiar": phase = .main; mainPath = [.changePassword]
-        case "editar": phase = .main; initialTab = .profile; mainPath = [.editProfile]
+        case "editar": phase = .main; initialTab = .profile; mainPaths[.profile] = [.editProfile]
         case "ayuda": phase = .main; mainPath = [.menu, .help]
         default: break
         }
+        if phase == .main { activeTab = initialTab }
     }
 }
 #endif

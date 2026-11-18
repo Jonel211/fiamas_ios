@@ -128,7 +128,8 @@ struct CreditsView: View {
             .refreshable { await loadDebts() }
         }
         .fiScreenBackground()
-        .task {
+        .task(id: router.activeTab) {
+            guard router.activeTab == .credits, !hasLoadedOnce else { return }
             await loadDebts()
         }
     }

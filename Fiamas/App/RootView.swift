@@ -12,20 +12,17 @@ struct RootView: View {
             case .auth:
                 NavigationStack(path: $router.authPath) {
                     WelcomeView()
-                        .navigationDestination(for: Route.self, destination: destination)
+                        .navigationDestination(for: Route.self, destination: Self.destination)
                 }
             case .main:
-                NavigationStack(path: $router.mainPath) {
-                    MainTabView()
-                        .navigationDestination(for: Route.self, destination: destination)
-                }
+                MainTabView()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: router.phase)
     }
 
     @ViewBuilder
-    private func destination(_ route: Route) -> some View {
+    static func destination(_ route: Route) -> some View {
         Group {
             switch route {
             case .welcome: WelcomeView()

@@ -6,8 +6,14 @@ final class AppRouter {
 
     var phase: Phase = .splash
     var authPath: [Route] = []
-    var mainPath: [Route] = []
+    var mainPaths: [MainTab: [Route]] = [:]
     var initialTab: MainTab = .home
+    var activeTab: MainTab = .home
+
+    var mainPath: [Route] {
+        get { mainPaths[activeTab] ?? [] }
+        set { mainPaths[activeTab] = newValue }
+    }
 
     init() {
         #if DEBUG
@@ -32,11 +38,16 @@ final class AppRouter {
     }
 
     func enterApp() {
-        mainPath = []
+        mainPaths = [:]
+        activeTab = initialTab
         phase = .main
     }
 
     func logout() {
+<<<<<<< HEAD
+=======
+        mainPaths = [:]
+>>>>>>> f7f7350 (fix(nav): persistir vistas sin recargar)
         authPath = [] // Se deja en blanco para cargar el WelcomeView con su diseño completo
         phase = .auth
     }

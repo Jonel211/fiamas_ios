@@ -8,24 +8,44 @@ struct MainTabView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
-                switch tab {
-                case .home: HomeView()
-                case .credits: CreditsView()
-                case .payments: PaymentsView()
-                case .profile: ProfileView()
+            ZStack {
+                ForEach(MainTab.allCases, id: \.self) { item in
+                    NavigationStack(path: Binding(
+                        get: { router.mainPaths[item] ?? [] },
+                        set: { router.mainPaths[item] = $0 }
+                    )) {
+                        section(for: item)
+                            .navigationDestination(for: Route.self, destination: RootView.destination)
+                    }
+                    .opacity(tab == item ? 1 : 0)
+                    .allowsHitTesting(tab == item)
+                    .accessibilityHidden(tab != item)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            MainTabBar(selected: $tab)
+            if router.mainPaths[tab]?.isEmpty != false {
+                MainTabBar(selected: $tab)
+            }
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: tab) { _, newTab in router.activeTab = newTab }
         .onAppear {
             guard !didSetInitialTab else { return }
             didSetInitialTab = true
             tab = router.initialTab
+            router.activeTab = tab
+        }
+    }
+
+    @ViewBuilder
+    private func section(for item: MainTab) -> some View {
+        switch item {
+        case .home: HomeView()
+        case .credits: CreditsView()
+        case .payments: PaymentsView()
+        case .profile: ProfileView()
         }
     }
 }
