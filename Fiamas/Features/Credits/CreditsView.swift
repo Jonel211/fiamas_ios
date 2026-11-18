@@ -2,18 +2,14 @@ import SwiftUI
 
 struct CreditsView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(ProfileStore.self) private var profileStore
+    @Environment(DebtsStore.self) private var debtsStore
 
-    @State private var fiadosAPI: [FiadoAPI] = []
-    @State private var storeSummaries: [StoreSummary] = []
-    @State private var isLoading = true
-    @State private var hasLoadedOnce = false
-    @State private var errorMessage: String?
-    @State private var refreshBannerMessage: String?
     @State private var expanded: Set<String> = []
 
     var mappedSections: [(store: Store, credits: [Credit])] {
-        storeSummaries.map { summary in
-            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
+        debtsStore.storeSummaries.map { summary in
+            let fiados = debtsStore.fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
             let store = Store(
                 id: summary.tienda.id,
                 name: summary.tienda.nombre,
@@ -75,14 +71,14 @@ struct CreditsView: View {
         VStack(spacing: 0) {
             FiHeader(
                 title: "Mis fiados",
-                trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
+                trailingBadge: debtsStore.fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
 
             ScrollView {
                 VStack(spacing: 14) {
-                    if let refreshBannerMessage {
+                    if let refreshBannerMessage = debtsStore.refreshBannerMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "wifi.exclamationmark")
                             Text(refreshBannerMessage)
@@ -94,20 +90,17 @@ struct CreditsView: View {
                         .background(RoundedRectangle(cornerRadius: 12).fill(Color.fiDanger.opacity(0.1)))
                     }
 
-                    if isLoading && !hasLoadedOnce {
-                        ProgressView("Cargando fiados...")
-                            .padding(.top, 40)
-                    } else if let errorMessage, !hasLoadedOnce {
+                    if let errorMessage = debtsStore.errorMessage, !debtsStore.hasLoadedOnce {
                         VStack(spacing: 12) {
                             Image(systemName: "wifi.exclamationmark")
                                 .font(.system(size: 40))
                                 .foregroundStyle(Color.fiDanger)
-                            Text(errorMessage)
+                            Text("No se pudieron cargar tus fiados: \(errorMessage)")
                                 .font(.poppins(14))
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await loadDebts() }
+                                Task { await debtsStore.refresh(profileStore: profileStore) }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
@@ -151,44 +144,17 @@ struct CreditsView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 24)
             }
-            .refreshable { await loadDebts() }
+            .refreshable { await debtsStore.refresh(profileStore: profileStore) }
         }
         .fiScreenBackground()
-        .task(id: router.activeTab) {
-            guard router.activeTab == .credits, !hasLoadedOnce else { return }
-            await loadDebts()
-        }
-    }
-
-    private func loadDebts() async {
-        if !hasLoadedOnce { isLoading = true }
-        errorMessage = nil
-        refreshBannerMessage = nil
-
-        async let debts = DebtsService.shared.fetchMyDebts()
-        async let summary = SummaryService.shared.fetchMySummary()
-
-        do {
-            let (debtsResult, summaryResult) = try await (debts, summary)
-            fiadosAPI = debtsResult
-            storeSummaries = summaryResult.stores
+        .onChange(of: debtsStore.storeSummaries.map(\.id), initial: true) { _, _ in
             if let firstStore = mappedSections.first?.store.id, expanded.isEmpty {
                 expanded.insert(firstStore)
             }
-            hasLoadedOnce = true
-        } catch is CancellationError {
-            return
-        } catch {
-            if !hasLoadedOnce {
-                errorMessage = "No se pudieron cargar tus fiados: \(error.localizedDescription)"
-            } else {
-                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
-            }
         }
-        isLoading = false
     }
 }
 
 #Preview {
-    CreditsView().environment(AppRouter())
+    CreditsView().environment(AppRouter()).environment(ProfileStore()).environment(DebtsStore())
 }
