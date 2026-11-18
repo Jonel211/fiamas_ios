@@ -6,6 +6,7 @@ struct StoreCreditsSectionView: View {
     let credits: [Credit]
     let isExpanded: Bool
     let toggle: () -> Void
+    var onSelectCredit: ((Credit) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -69,7 +70,16 @@ struct StoreCreditsSectionView: View {
                     VStack(spacing: 0) {
                         ForEach(credits) { credit in
                             FiDivider()
-                            CreditCardView(credit: credit)
+                            if let onSelectCredit {
+                                Button {
+                                    onSelectCredit(credit)
+                                } label: {
+                                    CreditCardView(credit: credit, showChevron: true)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                CreditCardView(credit: credit)
+                            }
                         }
                     }
                     .padding(.top, 14)

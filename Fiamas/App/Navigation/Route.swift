@@ -13,6 +13,7 @@ enum Route: Hashable {
     // App
     case menu
     case notifications
+    case creditDetail(Credit)
     case paymentDetail(Payment?)
     case changePassword
     case editProfile

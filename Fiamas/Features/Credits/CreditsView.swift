@@ -27,6 +27,17 @@ struct CreditsView: View {
                     detalle.producto.map { "\($0.nombre) x\(String(format: "%g", detalle.cantidad))" }
                 }.joined(separator: ", ")
 
+                let itemDetails: [CreditItem] = f.detalles.map { detalle in
+                    let rawUnit = detalle.producto?.unidadMedida?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let unit = (rawUnit?.isEmpty == false) ? rawUnit!.lowercased() : "und"
+                    return CreditItem(
+                        quantityText: "\(String(format: "%g", detalle.cantidad)) \(unit)",
+                        name: detalle.producto?.nombre ?? "Producto",
+                        unitPrice: detalle.precioUnitario,
+                        subtotal: detalle.subtotal
+                    )
+                }
+
                 let status: Credit.Status
                 if f.estado == "pagado" { status = .paid }
                 else if f.estado == "cancelado" { status = .cancelled }
@@ -34,11 +45,22 @@ struct CreditsView: View {
                 else if f.estado == "parcial" { status = .partial }
                 else { status = .pending }
 
+                let rawDate = f.fechaCreacion == "Sin fecha" ? "" : String(f.fechaCreacion.prefix(10))
+                let createdText = rawDate.isEmpty ? nil : "Fecha: \(rawDate)"
+                let dueText = f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? ""
+
                 return Credit(
                     id: f.id,
+                    storeName: summary.tienda.nombre,
                     amount: "S/ \(String(format: "%.2f", f.montoTotal))",
-                    items: items.isEmpty ? "Fiado del \(f.fechaCreacion.prefix(10))" : items,
-                    date: f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? String(f.fechaCreacion.prefix(10)),
+                    totalAmountValue: f.montoTotal,
+                    paidAmountValue: f.montoPagado,
+                    remainingAmountValue: f.saldoPendiente,
+                    items: items.isEmpty ? "Fiado del \(rawDate)" : items,
+                    itemDetails: itemDetails,
+                    createdAt: createdText,
+                    rawCreatedDate: rawDate,
+                    date: dueText,
                     status: status,
                     footnote: "\(f.estado.capitalized) · Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
                 )
@@ -116,6 +138,9 @@ struct CreditsView: View {
                                             expanded.insert(section.store.id)
                                         }
                                     }
+                                },
+                                onSelectCredit: { credit in
+                                    router.push(.creditDetail(credit))
                                 }
                             )
                         }

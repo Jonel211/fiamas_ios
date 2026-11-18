@@ -3,6 +3,7 @@ import SwiftUI
 /// Un fiado dentro de la tarjeta de su tienda.
 struct CreditCardView: View {
     let credit: Credit
+    var showChevron: Bool = false
 
     private var footnoteColor: Color {
         credit.status == .overdue ? .fiDanger : .fiTextSecondary
@@ -10,7 +11,7 @@ struct CreditCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(credit.amount)
                     .font(.poppins(20, .semibold))
                     .foregroundStyle(Color.fiTextPrimary)
@@ -22,6 +23,11 @@ struct CreditCardView: View {
                 case .paid: StatusBadge(text: "Pagado")
                 case .cancelled: StatusBadge(text: "Cancelado", foreground: .fiTextSecondary, background: .fiDivider)
                 }
+                if showChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.fiTextTertiary)
+                }
             }
 
             Text(credit.items)
@@ -29,9 +35,17 @@ struct CreditCardView: View {
                 .foregroundStyle(Color.fiTextSecondary)
                 .lineLimit(2)
 
-            HStack {
-                Label(credit.date, systemImage: "calendar")
-                    .foregroundStyle(Color.fiTextTertiary)
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let createdAt = credit.createdAt, !createdAt.isEmpty {
+                        Label(createdAt, systemImage: "clock")
+                            .foregroundStyle(Color.fiTextTertiary)
+                    }
+                    if !credit.date.isEmpty {
+                        Label(credit.date, systemImage: "calendar")
+                            .foregroundStyle(Color.fiTextTertiary)
+                    }
+                }
                 Spacer()
                 Text(credit.footnote)
                     .font(.poppins(12, .medium))
@@ -41,5 +55,6 @@ struct CreditCardView: View {
             .padding(.top, 2)
         }
         .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }
