@@ -14,14 +14,14 @@ extension AppRouter {
         case "codigo": phase = .auth; authPath = [.login, .recoverPassword, .verifyCode]
         case "nueva": phase = .auth; authPath = [.login, .recoverPassword, .verifyCode, .newPassword]
         case "inicio": phase = .main
-        case "fiados": phase = .main; initialTab = .credits
+        case "fiados": phase = .main; activeTab = .credits
         case "menu": phase = .main; mainPath = [.menu]
         case "notificaciones": phase = .main; mainPath = [.notifications]
-        case "pagos": phase = .main; initialTab = .payments
-        case "perfil": phase = .main; initialTab = .profile
+        case "pagos": phase = .main; activeTab = .payments
+        case "perfil": phase = .main; activeTab = .profile
         case "detalle": phase = .main; mainPath = [.paymentDetail(nil)]
         case "cambiar": phase = .main; mainPath = [.changePassword]
-        case "editar": phase = .main; initialTab = .profile; mainPath = [.editProfile]
+        case "editar": phase = .main; activeTab = .profile; mainPath = [.editProfile]
         case "ayuda": phase = .main; mainPath = [.menu, .help]
         default: break
         }

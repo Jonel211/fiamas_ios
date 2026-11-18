@@ -27,6 +27,9 @@ extension Color {
     /// Celeste de las pantallas de acceso
     static let fiSky = Color(hex: 0xBAD7F0)
     static let fiSkySoft = Color(hex: 0xEAF3FB)
+    
+    static let fiOrange = Color(red: 224/255, green: 170/255, blue: 61/255) // #E0AA3D
+
 
     // MARK: Neutros
 

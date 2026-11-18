@@ -3,13 +3,14 @@ import SwiftUI
 /// Contenedor con la barra inferior (Inicio · Mis fiados · Pagos · Perfil).
 struct MainTabView: View {
     @Environment(AppRouter.self) private var router
-    @State private var tab: MainTab = .home
-    @State private var didSetInitialTab = false
 
     var body: some View {
+        // @Bindable nos permite crear un Binding ($) de una clase @Observable
+        @Bindable var router = router
+        
         VStack(spacing: 0) {
             Group {
-                switch tab {
+                switch router.activeTab {
                 case .home: HomeView()
                 case .credits: CreditsView()
                 case .payments: PaymentsView()
@@ -18,15 +19,12 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            MainTabBar(selected: $tab)
+            // Le pasamos el binding del router a la barra
+            MainTabBar(selected: $router.activeTab)
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear {
-            guard !didSetInitialTab else { return }
-            didSetInitialTab = true
-            tab = router.initialTab
-        }
+        // Ya no necesitamos el .onAppear porque el router maneja la pestaña inicial
     }
 }
 
