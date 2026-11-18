@@ -23,11 +23,13 @@ struct ProfileView: View {
                     GroupLabel(title: "Información personal")
                         .padding(.bottom, 8)
                     VStack(spacing: 0) {
-                        row(icon: "person", title: "Nombres", value: store.profile.firstName) {
+                        // Icono nativo con relleno para Nombres
+                        row(icon: "person.fill", title: "Nombres", value: store.profile.firstName) {
                             router.push(.editProfile)
                         }
                         FiDivider(leadingInset: 64)
-                        row(icon: "person.text.rectangle", title: "Apellidos", value: store.profile.lastName) {
+                        // Icono nativo con relleno para Apellidos
+                        row(icon: "person.text.rectangle.fill", title: "Apellidos", value: store.profile.lastName) {
                             router.push(.editProfile)
                         }
                     }
@@ -37,7 +39,8 @@ struct ProfileView: View {
                     GroupLabel(title: "Contacto")
                         .padding(.bottom, 8)
                     HStack(spacing: 14) {
-                        IconTile(systemName: "phone", size: 36)
+                        // Icono nativo con relleno para Teléfono
+                        IconTile(systemName: "phone.fill", size: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Teléfono")
                                 .font(.poppins(12))
@@ -123,28 +126,29 @@ struct ProfileView: View {
     }
 
     private func row(icon: String, title: String, value: String?, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                IconTile(systemName: icon, size: 36)
-                Text(title)
-                    .font(.poppins(15, value == nil ? .medium : .regular))
-                    .foregroundStyle(value == nil ? Color.fiTextPrimary : Color.fiTextSecondary)
-                Spacer()
-                if let value {
-                    Text(value)
-                        .font(.poppins(15, .semibold))
-                        .foregroundStyle(Color.fiTextPrimary)
+            Button(action: action) {
+                HStack(spacing: 14) {
+                    // Corregido: removiendo 'style: .flat' que causaba el error de compilación
+                    IconTile(systemName: icon, size: 36)
+                    Text(title)
+                        .font(.poppins(15, value == nil ? .medium : .regular))
+                        .foregroundStyle(value == nil ? Color.fiTextPrimary : Color.fiTextSecondary)
+                    Spacer()
+                    if let value {
+                        Text(value)
+                            .font(.poppins(15, .semibold))
+                            .foregroundStyle(Color.fiTextPrimary)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.fiTextTertiary)
                 }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.fiTextTertiary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-    }
 }
 
 #Preview {

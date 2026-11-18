@@ -13,8 +13,36 @@ struct PaymentDetailView: View {
         payment?.store ?? "Bodega Don Pepe"
     }
 
-    private var displayConcept: String {
-        payment?.concept ?? "Abono Víveres"
+    private var displayProducts: [String] {
+        let genericPhrases = [
+            "abono correspondiente a cuenta",
+            "abono a cuenta",
+            "abono víveres",
+            "null"
+        ]
+        
+        let filteredProducts = payment?.products.filter { product in
+            let lower = product.lowercased().trimmingCharacters(in: .whitespaces)
+            return !genericPhrases.contains(lower) && !lower.isEmpty
+        } ?? []
+        
+        if !filteredProducts.isEmpty {
+            return filteredProducts
+        }
+        
+        if let concept = payment?.concept, !concept.isEmpty {
+            let lowerConcept = concept.lowercased().trimmingCharacters(in: .whitespaces)
+            if !genericPhrases.contains(lowerConcept) {
+                if concept.contains(",") {
+                    return concept.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                } else if concept.contains(" y ") {
+                    return concept.components(separatedBy: " y ").map { $0.trimmingCharacters(in: .whitespaces) }
+                }
+                return [concept]
+            }
+        }
+        
+        return ["Abono correspondiente a cuenta"]
     }
 
     private var displayAmount: String {
@@ -26,10 +54,8 @@ struct PaymentDetailView: View {
     }
 
     private var displayDate: String {
-        if let p = payment, !p.date.isEmpty {
-            return p.date
-        }
-        return "06 de sep 2026"
+        guard let p = payment, !p.date.isEmpty else { return "06 de sep 2026" }
+        return p.date
     }
 
     private var displayMethod: String {
@@ -41,10 +67,8 @@ struct PaymentDetailView: View {
     }
 
     private var displayFiadoTotal: String? {
-        if let total = payment?.fiadoTotal {
-            return "S/ \(String(format: "%.2f", total))"
-        }
-        return nil
+        guard let total = payment?.fiadoTotal else { return nil }
+        return "S/ \(String(format: "%.2f", total))"
     }
 
     private var displayFiadoEstado: String? {
@@ -55,6 +79,7 @@ struct PaymentDetailView: View {
         """
         🧾 Comprobante de Abono Fiamas
         Tienda: \(displayStore)
+        Productos: \(displayProducts.joined(separator: ", "))
         Monto: \(displayAmount)
         Fecha: \(displayDate) a las \(displayTime)
         Método: \(displayMethod)
@@ -91,7 +116,9 @@ struct PaymentDetailView: View {
                     VStack(spacing: 0) {
                         detailRow(title: "Tienda", value: displayStore, icon: "storefront")
                         FiDivider(leadingInset: 16)
-                        detailRow(title: "Concepto / Detalle", value: displayConcept, icon: "doc.text")
+                        
+                        productsListRow
+                        
                         FiDivider(leadingInset: 16)
                         detailRow(title: "Monto abonado", value: displayAmount, icon: "banknote", valueColor: .fiTeal, isBold: true)
                         FiDivider(leadingInset: 16)
@@ -129,6 +156,32 @@ struct PaymentDetailView: View {
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var productsListRow: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "cart.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.fiTeal)
+                .frame(width: 24)
+                .padding(.top, 2)
+
+            Text("Productos / Detalle")
+                .font(.poppins(14))
+                .foregroundStyle(Color.fiTextSecondary)
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                ForEach(displayProducts, id: \.self) { product in
+                    Text(product)
+                        .font(.poppins(14, .medium))
+                        .foregroundStyle(Color.fiTextPrimary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+        }
+        .padding(16)
     }
 
     private var summary: some View {
@@ -194,11 +247,8 @@ struct PaymentDetailView: View {
             Text(value)
                 .font(.poppins(14, isBold ? .bold : .medium))
                 .foregroundStyle(valueColor)
+                .multilineTextAlignment(.trailing)
         }
         .padding(16)
     }
-}
-
-#Preview {
-    PaymentDetailView().environment(AppRouter())
 }

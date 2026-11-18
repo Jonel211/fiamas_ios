@@ -35,14 +35,12 @@ struct HomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Header limpio (sin el icono QR en la barra superior)
             FiHeader(
                 title: "Bienvenido",
                 trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
-                secondaryTrailingIcon: "qrcode.viewfinder",
-                secondaryTrailingLabel: "Vincular tienda por QR",
                 onLeading: { router.push(.menu) },
-                onTrailing: { router.push(.notifications) },
-                onSecondaryTrailing: { isShowingScanner = true }
+                onTrailing: { router.push(.notifications) }
             )
 
             ScrollView {
@@ -60,13 +58,36 @@ struct HomeView: View {
                         .padding(.bottom, 12)
                     }
 
-                    Text("Hola, \(profileStore.profile.firstName)")
-                        .font(.poppins(22, .semibold))
-                        .foregroundStyle(Color.fiTextPrimary)
-                    Text("Este es el resumen de tus fiados")
-                        .font(.poppins(14))
-                        .foregroundStyle(Color.fiTextSecondary)
-                        .padding(.bottom, 16)
+                    // Saludo y Botón de vincular con color dorado y bordes menos redondeados
+                    HStack(alignment: .center, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Hola, \(profileStore.profile.firstName)")
+                                .font(.poppins(22, .semibold))
+                                .foregroundStyle(Color.fiTextPrimary)
+                            Text("Este es el resumen de tus fiados")
+                                .font(.poppins(14))
+                                .foregroundStyle(Color.fiTextSecondary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            isShowingScanner = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "qrcode.viewfinder")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Vincular")
+                                    .font(.poppins(13, .semibold))
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.fiGold))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.bottom, 16)
 
                     if isLoading && !hasLoadedOnce {
                         ProgressView("Cargando...")
@@ -116,7 +137,7 @@ struct HomeView: View {
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 10)
-                                    .background(Capsule().fill(Color.fiTeal))
+                                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.fiGold))
                                 }
                                 .buttonStyle(.plain)
                                 .padding(.top, 4)

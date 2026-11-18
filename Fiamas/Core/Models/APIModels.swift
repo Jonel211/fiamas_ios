@@ -14,8 +14,7 @@ struct UserAPI: Codable {
     let telefono: String
     let rol: String
     let tiendaId: String?
-    
-    // Esto mapea "tienda_id" del JSON a "tiendaId" en Swift
+
     enum CodingKeys: String, CodingKey {
         case id, nombre, telefono, rol
         case tiendaId = "tienda_id"
