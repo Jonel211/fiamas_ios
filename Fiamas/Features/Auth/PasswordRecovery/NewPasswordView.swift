@@ -10,7 +10,7 @@ struct NewPasswordView: View {
     @State private var password = ""
     @State private var confirm = ""
 
-    private var isValid: Bool { password.count >= 6 && password == confirm }
+    private var isValid: Bool { (6...6).contains(password.count) && password == confirm }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,11 +46,17 @@ struct NewPasswordView: View {
                         FiTextField(
                             label: "Nueva contraseña",
                             text: $password,
-                            placeholder: "Mínimo 6 caracteres",
+                            placeholder: "Máximo 6 caracteres",
                             icon: "lock",
                             isSecure: true,
                             contentType: .newPassword
                         )
+                        .onChange(of: password) { _, newValue in
+                            if newValue.count > 6 {
+                                password = String(newValue.prefix(6))
+                            }
+                        }
+
                         FiTextField(
                             label: "Confirmar nueva contraseña",
                             text: $confirm,
@@ -59,6 +65,11 @@ struct NewPasswordView: View {
                             isSecure: true,
                             contentType: .newPassword
                         )
+                        .onChange(of: confirm) { _, newValue in
+                            if newValue.count > 6 {
+                                confirm = String(newValue.prefix(6))
+                            }
+                        }
                     }
 
                     FiButton(title: "Actualizar contraseña", isEnabled: isValid) {

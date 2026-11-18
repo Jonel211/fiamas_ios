@@ -47,10 +47,16 @@ struct RecoverPasswordView: View {
                         keyboard: .phonePad,
                         contentType: .telephoneNumber
                     )
+                    .onChange(of: phone) { _, newValue in
+                        let digitsOnly = String(newValue.filter(\.isNumber).prefix(9))
+                        if phone != digitsOnly {
+                            phone = digitsOnly
+                        }
+                    }
 
                     FiButton(
                         title: "Enviar código",
-                        isEnabled: phone.filter(\.isNumber).count >= 9
+                        isEnabled: phone.count == 9
                     ) {
                         if let onSwitchToVerifyCode {
                             onSwitchToVerifyCode(phone)
