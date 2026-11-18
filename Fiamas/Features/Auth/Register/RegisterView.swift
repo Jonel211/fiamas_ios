@@ -35,7 +35,7 @@ struct RegisterView: View {
             && (isFound || (qrCode != nil
             && !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-            && !isAlreadyRegistered && password.count >= 6 && password == confirmPassword && !isLoading
+            && !isAlreadyRegistered && PasswordRules.isValid(password) && password == confirmPassword && !isLoading
     }
 
     var body: some View {
@@ -100,7 +100,10 @@ struct RegisterView: View {
 
                         FiTextField(label: "Crear una contraseña", text: $password, placeholder: "Mínimo 6 caracteres",
                                     icon: "lock", isSecure: true, contentType: .newPassword)
-                        if !password.isEmpty && password.count < 6 {
+                            .onChange(of: password) { _, newValue in
+                                if newValue.count > PasswordRules.maxLength { password = PasswordRules.limit(newValue) }
+                            }
+                        if !password.isEmpty && !PasswordRules.isValid(password) {
                             Label("La contraseña debe tener al menos 6 caracteres", systemImage: "exclamationmark.circle")
                                 .font(.poppins(12))
                                 .foregroundStyle(Color.fiDanger)
@@ -109,6 +112,9 @@ struct RegisterView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             FiTextField(label: "Confirmar contraseña", text: $confirmPassword, placeholder: "Repite tu contraseña",
                                         icon: "lock", isSecure: true, contentType: .newPassword)
+                                .onChange(of: confirmPassword) { _, newValue in
+                                    if newValue.count > PasswordRules.maxLength { confirmPassword = PasswordRules.limit(newValue) }
+                                }
                             if passwordsMismatch {
                                 Label("Las contraseñas no coinciden", systemImage: "exclamationmark.circle")
                                     .font(.poppins(12))
