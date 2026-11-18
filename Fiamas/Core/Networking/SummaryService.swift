@@ -70,7 +70,9 @@ class SummaryService {
     private init() {}
 
     func fetchMySummary() async throws -> (score: Int?, category: String, totalOwed: Double, stores: [StoreSummary]) {
-        let response: ClientSummaryResponse = try await APIClient.shared.request(endpoint: "/app-cliente/mi-resumen")
+        let response: ClientSummaryResponse = try await APIClient.shared.request(
+            endpoint: "/app-cliente/mi-resumen", cachePolicy: .reloadIgnoringLocalCacheData
+        )
         let scores = response.detallePorTienda.compactMap(\.scorePagador)
         let score = scores.isEmpty ? nil : scores.reduce(0, +) / scores.count
         let category: String

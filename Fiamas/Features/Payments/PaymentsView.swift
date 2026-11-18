@@ -10,6 +10,7 @@ struct PaymentsView: View {
     @State private var hasLoadedOnce = false
     @State private var errorMessage: String?
     @State private var refreshBannerMessage: String?
+    @Environment(PaymentsStore.self) private var paymentsStore
 
     // Filtros
     @State private var selectedStore: String? = nil
@@ -56,7 +57,7 @@ struct PaymentsView: View {
 
         var dict: [String: TempGroup] = [:]
 
-        for api in pagosAPI {
+        for api in paymentsStore.pagosAPI {
             let date = Self.parseDate(api.fecha_pago)
 
             let title: String
@@ -138,7 +139,7 @@ struct PaymentsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if let refreshBannerMessage {
+                    if let refreshBannerMessage = paymentsStore.refreshBannerMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "wifi.exclamationmark")
                             Text(refreshBannerMessage)
@@ -151,28 +152,24 @@ struct PaymentsView: View {
                         .padding(.bottom, 12)
                     }
 
-                    if isLoading && !hasLoadedOnce {
-                        ProgressView("Cargando pagos...")
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
-                    } else if let errorMessage, !hasLoadedOnce {
+                    if let errorMessage = paymentsStore.errorMessage, !paymentsStore.hasLoadedOnce {
                         VStack(spacing: 12) {
                             Image(systemName: "wifi.exclamationmark")
                                 .font(.system(size: 40))
                                 .foregroundStyle(Color.fiDanger)
-                            Text(errorMessage)
+                            Text("No se pudieron cargar tus pagos: \(errorMessage)")
                                 .font(.poppins(14))
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await loadPayments() }
+                                Task { await paymentsStore.refresh() }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 60)
-                    } else if pagosAPI.isEmpty {
+                    } else if paymentsStore.pagosAPI.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "creditcard")
                                 .font(.system(size: 56))
@@ -235,14 +232,10 @@ struct PaymentsView: View {
                 .padding(.bottom, 24)
             }
             .refreshable {
-                await loadPayments()
+                await paymentsStore.refresh()
             }
         }
         .fiScreenBackground()
-        .task(id: router.activeTab) {
-            guard router.activeTab == .payments, !hasLoadedOnce else { return }
-            await loadPayments()
-        }
     }
 
     private var filters: some View {
@@ -267,25 +260,6 @@ struct PaymentsView: View {
         }
     }
 
-    private func loadPayments() async {
-        if !hasLoadedOnce { isLoading = true }
-        errorMessage = nil
-        refreshBannerMessage = nil
-
-        do {
-            pagosAPI = try await PaymentService.shared.fetchMyPayments()
-            hasLoadedOnce = true
-        } catch is CancellationError {
-            return
-        } catch {
-            if !hasLoadedOnce {
-                errorMessage = "No se pudieron cargar tus pagos: \(error.localizedDescription)"
-            } else {
-                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
-            }
-        }
-        isLoading = false
-    }
 }
 
 /// Botón de filtro con ícono y flecha.
@@ -316,5 +290,5 @@ private struct FilterPill: View {
 }
 
 #Preview {
-    PaymentsView().environment(AppRouter())
+    PaymentsView().environment(AppRouter()).environment(PaymentsStore())
 }

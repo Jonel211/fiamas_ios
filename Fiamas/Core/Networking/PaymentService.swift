@@ -36,7 +36,7 @@ struct PaymentsResponse: Decodable {
             total_pagado = 0.0
         }
         
-        pagos = (try? container.decode([PaymentAPI].self, forKey: .pagos)) ?? []
+        pagos = try container.decode([PaymentAPI].self, forKey: .pagos)
     }
 }
 
@@ -100,7 +100,10 @@ struct PaymentAPI: Decodable, Identifiable {
         } else if let intId = try? container.decode(Int.self, forKey: .id) {
             id = String(intId)
         } else {
-            id = UUID().uuidString
+            throw DecodingError.keyNotFound(
+                CodingKeys.id,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "ID de pago inválido")
+            )
         }
         
         fecha_pago = (try? container.decode(String.self, forKey: .fecha_pago)) ?? ""
@@ -138,7 +141,7 @@ class PaymentService {
             throw URLError(.badURL)
         }
         
-        let request = URLRequest(url: url)
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         
         if let token = UserDefaults.standard.string(forKey: "auth_token") {
             var mutableRequest = request
