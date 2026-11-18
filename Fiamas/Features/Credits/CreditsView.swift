@@ -34,11 +34,18 @@ struct CreditsView: View {
                 else if f.estado == "parcial" { status = .partial }
                 else { status = .pending }
 
+                let createdText = f.fechaCreacion == "Sin fecha"
+                    ? nil
+                    : "Fecha: \(f.fechaCreacion.prefix(10))"
+
+                let dueText = f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? ""
+
                 return Credit(
                     id: f.id,
                     amount: "S/ \(String(format: "%.2f", f.montoTotal))",
                     items: items.isEmpty ? "Fiado del \(f.fechaCreacion.prefix(10))" : items,
-                    date: f.fechaVencimiento.map { "Vence: \($0.prefix(10))" } ?? String(f.fechaCreacion.prefix(10)),
+                    createdAt: createdText,
+                    date: dueText,
                     status: status,
                     footnote: "\(f.estado.capitalized) · Saldo: S/ \(String(format: "%.2f", f.saldoPendiente))"
                 )

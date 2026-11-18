@@ -29,9 +29,17 @@ struct CreditCardView: View {
                 .foregroundStyle(Color.fiTextSecondary)
                 .lineLimit(2)
 
-            HStack {
-                Label(credit.date, systemImage: "calendar")
-                    .foregroundStyle(Color.fiTextTertiary)
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let createdAt = credit.createdAt, !createdAt.isEmpty {
+                        Label(createdAt, systemImage: "clock")
+                            .foregroundStyle(Color.fiTextTertiary)
+                    }
+                    if !credit.date.isEmpty {
+                        Label(credit.date, systemImage: "calendar")
+                            .foregroundStyle(Color.fiTextTertiary)
+                    }
+                }
                 Spacer()
                 Text(credit.footnote)
                     .font(.poppins(12, .medium))
