@@ -265,7 +265,8 @@ struct PaymentsView: View {
             }
         }
         .fiScreenBackground()
-        .task {
+        .task(id: router.activeTab) {
+            guard router.activeTab == .payments, !hasLoadedOnce else { return }
             await loadPayments()
         }
     }

@@ -170,7 +170,8 @@ struct HomeView: View {
                 }
             }
         }
-        .task {
+        .task(id: router.activeTab) {
+            guard router.activeTab == .home, !hasLoadedOnce else { return }
             await loadData()
         }
     }
