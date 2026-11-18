@@ -4,22 +4,13 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(ProfileStore.self) private var profileStore
+    @Environment(DebtsStore.self) private var debtsStore
 
-    // Datos del servidor
-    @State private var fiadosAPI: [FiadoAPI] = []
-    @State private var storeSummaries: [StoreSummary] = []
-    @State private var clientScore: Int?
-    @State private var clientCategory: String = "Sin historial"
-    @State private var totalOwed: Double = 0
-    @State private var errorMessage: String?
-    @State private var refreshBannerMessage: String?
-    @State private var isLoading = true
-    @State private var hasLoadedOnce = false
     @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
-        storeSummaries.map { summary in
-            let fiados = fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
+        debtsStore.storeSummaries.map { summary in
+            let fiados = debtsStore.fiadosAPI.filter { $0.tienda?.id == summary.tienda.id }
             return Store(
                 id: summary.tienda.id,
                 name: summary.tienda.nombre,
@@ -38,14 +29,14 @@ struct HomeView: View {
             // Header limpio (sin el icono QR en la barra superior)
             FiHeader(
                 title: "Bienvenido",
-                trailingBadge: fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
+                trailingBadge: debtsStore.fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if let refreshBannerMessage {
+                    if let refreshBannerMessage = debtsStore.refreshBannerMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "wifi.exclamationmark")
                             Text(refreshBannerMessage)
@@ -89,21 +80,17 @@ struct HomeView: View {
                     }
                     .padding(.bottom, 16)
 
-                    if isLoading && !hasLoadedOnce {
-                        ProgressView("Cargando...")
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
-                    } else if let errorMessage, !hasLoadedOnce {
+                    if let errorMessage = debtsStore.errorMessage, !debtsStore.hasLoadedOnce {
                         VStack(spacing: 12) {
                             Image(systemName: "wifi.exclamationmark")
                                 .font(.system(size: 40))
                                 .foregroundStyle(Color.fiDanger)
-                            Text(errorMessage)
+                            Text("No se pudo cargar tu resumen: \(errorMessage)")
                                 .font(.poppins(14))
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await loadData() }
+                                Task { await debtsStore.refresh(profileStore: profileStore) }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
@@ -111,7 +98,7 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
                     } else {
-                        TotalOwedCard(total: String(format: "%.2f", totalOwed), score: clientScore, category: clientCategory)
+                        TotalOwedCard(total: String(format: "%.2f", debtsStore.totalOwed), score: debtsStore.clientScore, category: debtsStore.clientCategory)
                             .padding(.bottom, 28)
 
                         SectionHeader(title: "Tiendas vinculadas", trailing: "\(mappedStores.count) tiendas")
@@ -159,51 +146,17 @@ struct HomeView: View {
                 .padding(.bottom, 24)
             }
             .refreshable {
-                await loadData()
+                await debtsStore.refresh(profileStore: profileStore)
             }
         }
         .fiScreenBackground()
         .fullScreenCover(isPresented: $isShowingScanner) {
             LinkStoreScannerSheet { _ in
                 Task {
-                    await loadData()
+                    await debtsStore.refresh(profileStore: profileStore)
                 }
             }
         }
-        .task(id: router.activeTab) {
-            guard router.activeTab == .home, !hasLoadedOnce else { return }
-            await loadData()
-        }
-    }
-
-    private func loadData() async {
-        if !hasLoadedOnce { isLoading = true }
-        errorMessage = nil
-        refreshBannerMessage = nil
-
-        async let debtsTask = DebtsService.shared.fetchMyDebts()
-        async let summaryTask = SummaryService.shared.fetchMySummary()
-
-        do {
-            let (debts, summary) = try await (debtsTask, summaryTask)
-            fiadosAPI = debts
-            storeSummaries = summary.stores
-            totalOwed = summary.totalOwed
-            clientScore = summary.score
-            clientCategory = summary.category
-            profileStore.updateScoring(score: clientScore, category: clientCategory)
-            await ReminderScheduler.sync(fiadosAPI)
-            hasLoadedOnce = true
-        } catch is CancellationError {
-            return
-        } catch {
-            if !hasLoadedOnce {
-                errorMessage = "No se pudo cargar tu resumen: \(error.localizedDescription)"
-            } else {
-                refreshBannerMessage = "No se pudo actualizar. Mostrando últimos datos guardados."
-            }
-        }
-        isLoading = false
     }
 }
 
@@ -339,4 +292,5 @@ private struct LeftPanelShape: Shape {
     HomeView()
         .environment(AppRouter())
         .environment(ProfileStore())
+        .environment(DebtsStore())
 }
