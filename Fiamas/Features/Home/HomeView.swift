@@ -26,7 +26,8 @@ struct HomeView: View {
                 description: "\(fiados.count) fiados registrados",
                 date: fiados.first.map { String($0.fechaCreacion.prefix(10)) } ?? "",
                 used: summary.saldoActual,
-                limit: summary.limiteCredito
+                limit: summary.limiteCredito,
+                imagenUrl: summary.tienda.imagenUrl
             )
         }
         .sorted { $0.name < $1.name }
@@ -191,12 +192,14 @@ private struct TotalOwedCard: View {
     let score: Int?
     let category: String
 
+    // Lado Derecho (Verde)
     private let rightTop = Color(red: 0.19, green: 0.55, blue: 0.52)
     private let rightBot = Color(red: 0.15, green: 0.46, blue: 0.44)
 
-    private let swatchTeal = Color(red: 0.19, green: 0.55, blue: 0.52)
-    private let mintTop = Color(red: 0.80, green: 0.92, blue: 0.88)
-    private let mintMid = Color(red: 0.55, green: 0.78, blue: 0.73)
+    // Lado Izquierdo (Puro Naranja)
+    private let orangeTop = Color(red: 245/255, green: 205/255, blue: 120/255)
+    private let orangeMid = Color.fiOrange // #E0AA3D
+    private let orangeBot = Color(red: 190/255, green: 130/255, blue: 30/255)
 
     var body: some View {
         ZStack {
@@ -210,9 +213,9 @@ private struct TotalOwedCard: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: mintTop, location: 0.0),
-                            .init(color: mintMid, location: 0.5),
-                            .init(color: swatchTeal, location: 1.0)
+                            .init(color: orangeTop, location: 0.0),
+                            .init(color: orangeMid, location: 0.5),
+                            .init(color: orangeBot, location: 1.0)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -225,10 +228,14 @@ private struct TotalOwedCard: View {
 
             VStack(spacing: 12) {
                 HStack(spacing: 0) {
-                    StoreIllustration()
-                        .scaleEffect(1.12)
-                        .frame(width: 140, height: 115)
-
+                    // Imagen ajustada
+                    Image("card-tiendas")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 130, height: 115)
+                        .scaleEffect(1.30)
+                        .offset(x: 10, y: 0)
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Total debiendo")
                             .font(.poppins(18, .medium))
@@ -257,13 +264,15 @@ private struct TotalOwedCard: View {
                         .fill(.white.opacity(0.35))
                         .frame(width: 1, height: 22)
 
+                    // --- CAMBIO: Texto negro en el Badge Naranja ---
                     StatusBadge(
                         text: category,
                         icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
-                        foreground: (score ?? 100) < 50 ? .fiDanger : .fiTealDark,
-                        background: .white
+                        foreground: .black, // <-- Texto negro
+                        background: .fiOrange // Fondo naranja
                     )
                     .fixedSize(horizontal: true, vertical: false)
+                    // ------------------------------------------------
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -301,70 +310,6 @@ private struct LeftPanelShape: Shape {
         p.addLine(to: CGPoint(x: 0, y: h))
         p.closeSubpath()
         return p
-    }
-}
-
-// MARK: - Tiendita a color
-
-private struct StoreIllustration: View {
-    private let green = Color(red: 0.13, green: 0.50, blue: 0.36)
-    private let cream = Color(red: 0.99, green: 0.96, blue: 0.88)
-    private let yellow = Color(red: 0.98, green: 0.76, blue: 0.25)
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            // Base
-            Ellipse()
-                .fill(Color(red: 0.55, green: 0.80, blue: 0.70))
-                .frame(width: 124, height: 22)
-                .offset(y: 4)
-
-            // Hojas
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 30))
-                .foregroundStyle(Color(red: 0.36, green: 0.68, blue: 0.40))
-                .rotationEffect(.degrees(-35))
-                .offset(x: -48, y: -14)
-
-            // Tienda
-            VStack(spacing: 0) {
-                Capsule()
-                    .fill(green)
-                    .frame(width: 74, height: 8) // techo
-
-                HStack(spacing: 0) { // toldo
-                    ForEach(0..<6, id: \.self) { i in
-                        Rectangle()
-                            .fill(i % 2 == 0 ? green : Color.white)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(width: 92, height: 22)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 3,
-                        bottomLeadingRadius: 9,
-                        bottomTrailingRadius: 9,
-                        topTrailingRadius: 3
-                    )
-                )
-
-                ZStack { // cuerpo
-                    Rectangle().fill(cream)
-                    HStack(spacing: 10) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(green) // puerta
-                            .frame(width: 18, height: 34)
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(yellow) // ventana
-                            .frame(width: 26, height: 20)
-                            .offset(y: -4)
-                    }
-                }
-                .frame(width: 80, height: 40)
-            }
-            .offset(y: -6)
-        }
     }
 }
 

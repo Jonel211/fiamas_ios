@@ -106,11 +106,8 @@ struct ProfileView: View {
                 .font(.poppins(14))
                 .foregroundStyle(Color.fiTextSecondary)
 
-            HStack(spacing: 8) {
-                StatusBadge(text: "Teléfono verificado", icon: "checkmark.seal.fill")
-                StatusBadge(text: store.category, icon: "hand.thumbsup.fill", foreground: .fiWarning, background: .fiGoldSoft)
-            }
-            .padding(.top, 12)
+            // Los dos StatusBadge ("Teléfono verificado" y store.category) han sido eliminados de aquí.
+            
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)

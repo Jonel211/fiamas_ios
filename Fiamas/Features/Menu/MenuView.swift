@@ -14,20 +14,29 @@ struct MenuView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 14) {
-                        ProfileAvatarView(photo: profileStore.photo, initials: profileStore.profile.initials,
-                                          size: 56, showsCameraBadge: false)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(profileStore.profile.fullName)
-                                .font(.poppins(17, .semibold))
-                                .foregroundStyle(Color.fiTextPrimary)
-                            Text(profileStore.profile.phone)
-                                .font(.poppins(13))
-                                .foregroundStyle(Color.fiTextSecondary)
+                    // --- INICIO DEL CAMBIO: Tarjeta clickeable ---
+                    Button {
+                        router.goToProfileTab()
+                    } label: {
+                        HStack(spacing: 14) {
+                            ProfileAvatarView(photo: profileStore.photo, initials: profileStore.profile.initials,
+                                              size: 56, showsCameraBadge: false)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(profileStore.profile.fullName)
+                                    .font(.poppins(17, .semibold))
+                                    .foregroundStyle(Color.fiTextPrimary)
+                                Text(profileStore.profile.phone)
+                                    .font(.poppins(13))
+                                    .foregroundStyle(Color.fiTextSecondary)
+                            }
+                            Spacer() // Empuja el contenido a la izquierda
                         }
+                        .contentShape(Rectangle()) // Hace que todo el fondo blanco sea clickeable
                     }
+                    .buttonStyle(.plain)
                     .fiCard()
                     .padding(.bottom, 24)
+                    // --- FIN DEL CAMBIO ---
 
                     GroupLabel(title: "Seguridad")
                         .padding(.bottom, 8)
