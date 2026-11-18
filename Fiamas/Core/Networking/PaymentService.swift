@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct PaymentsResponse: Decodable {
     let msg: String?
@@ -136,6 +137,7 @@ struct PaymentAPI: Decodable, Identifiable {
 
 class PaymentService {
     static let shared = PaymentService()
+    private let logger = Logger(subsystem: "com.fiamas", category: "Refresh")
     private init() {}
     
     func fetchMyPayments() async throws -> [PaymentAPI] {
@@ -149,17 +151,35 @@ class PaymentService {
             var mutableRequest = request
             mutableRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             
-            let (data, response) = try await URLSession.shared.data(for: mutableRequest)
-            
-            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
-                if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let errorMsg = errorDict["error"] as? String {
-                    throw NSError(domain: "PaymentService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+            let data: Data
+            let response: URLResponse
+            do {
+                (data, response) = try await URLSession.shared.data(for: mutableRequest)
+            } catch {
+                if (error as? URLError)?.code == .cancelled {
+                    logger.debug("GET /app-cliente/mis-pagos: cancelled")
+                } else {
+                    logger.error("GET /app-cliente/mis-pagos: transport \(String(describing: error), privacy: .public)")
                 }
-                throw NSError(domain: "PaymentService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Error del servidor: \(httpResponse.statusCode)"])
+                throw error
             }
             
-            let decoded = try JSONDecoder().decode(PaymentsResponse.self, from: data)
+            if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
+                logger.error("GET /app-cliente/mis-pagos: HTTP \(httpResponse.statusCode)")
+                if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMsg = errorDict["error"] as? String {
+                    throw APIError.httpError(status: httpResponse.statusCode, message: errorMsg)
+                }
+                throw APIError.httpError(status: httpResponse.statusCode, message: "Error del servidor: \(httpResponse.statusCode)")
+            }
+            
+            let decoded: PaymentsResponse
+            do {
+                decoded = try JSONDecoder().decode(PaymentsResponse.self, from: data)
+            } catch {
+                logger.error("GET /app-cliente/mis-pagos: decoding \(String(describing: error), privacy: .public)")
+                throw error
+            }
             return decoded.pagos
         } else {
             throw URLError(.userAuthenticationRequired)

@@ -188,7 +188,7 @@ struct PaymentsView: View {
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await paymentsStore.refresh() }
+                                Task { await paymentsStore.refresh(manually: true) }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
@@ -258,7 +258,7 @@ struct PaymentsView: View {
                 .padding(.bottom, 24)
             }
             .refreshable {
-                await paymentsStore.refresh()
+                await paymentsStore.refresh(manually: true)
             }
         }
         .fiScreenBackground()

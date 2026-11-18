@@ -99,7 +99,7 @@ struct CreditsView: View {
                                 .foregroundStyle(Color.fiTextSecondary)
                                 .multilineTextAlignment(.center)
                             Button("Reintentar") {
-                                Task { await debtsStore.refresh(profileStore: profileStore) }
+                                Task { await debtsStore.refresh(profileStore: profileStore, manually: true) }
                             }
                             .font(.poppins(14, .semibold))
                             .foregroundStyle(Color.fiTeal)
@@ -143,7 +143,7 @@ struct CreditsView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 24)
             }
-            .refreshable { await debtsStore.refresh(profileStore: profileStore) }
+            .refreshable { await debtsStore.refresh(profileStore: profileStore, manually: true) }
         }
         .fiScreenBackground()
         .onChange(of: debtsStore.storeSummaries.map(\.id), initial: true) { _, _ in
