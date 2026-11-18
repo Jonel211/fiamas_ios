@@ -58,14 +58,14 @@ struct FiHeader: View {
                 .padding(.horizontal, secondaryTrailingIcon != nil ? 96 : 56)
         }
         .padding(.horizontal, 8)
-        .frame(height: 56)
+        .frame(height: 44)
         .frame(maxWidth: .infinity)
-        .background(Color.fiTeal, ignoresSafeAreaEdges: [])
-        .background(alignment: .top) {
-            Color.white
-                .frame(height: 0)
-                .ignoresSafeArea(edges: .top)
-        }
+        .padding(.top, 4)
+        .background(Color.fiTeal.ignoresSafeArea(edges: .top))
+        .toolbarBackground(Color.fiTeal, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .preferredColorScheme(.dark)
     }
 
     private func iconButton(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {

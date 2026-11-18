@@ -22,6 +22,7 @@ struct MainTabView: View {
                         set: { router.mainPaths[item] = $0 }
                     )) {
                         section(for: item)
+                            .toolbar(.hidden, for: .navigationBar)
                             .navigationDestination(for: Route.self, destination: RootView.destination)
                     }
                     .opacity(tab == item ? 1 : 0)
@@ -38,7 +39,6 @@ struct MainTabView: View {
         .fiScreenBackground()
         .environment(debtsStore)
         .environment(paymentsStore)
-        .toolbar(.hidden, for: .navigationBar)
         .task(id: "\(tab)-\(scenePhase)-\(router.mainPaths[tab]?.isEmpty != false)") {
             guard scenePhase == .active, router.mainPaths[tab]?.isEmpty != false else { return }
             while !Task.isCancelled {
