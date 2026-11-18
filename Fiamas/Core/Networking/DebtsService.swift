@@ -46,24 +46,64 @@ struct FiadoDetalleAPI: Decodable {
     let producto: ProductoFiadoAPI?
     let cantidad: Double
     
+    let precioUnitario: Double
+    let subtotal: Double
 
-    private enum CodingKeys: String, CodingKey { case producto, cantidad }
+    private enum CodingKeys: String, CodingKey {
+        case producto, cantidad, precioUnitario, subtotal
+    }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         producto = try? values.decodeIfPresent(ProductoFiadoAPI.self, forKey: .producto)
-        if let number = try? values.decode(Double.self, forKey: .cantidad) {
-            cantidad = number
-        } else if let text = try? values.decode(String.self, forKey: .cantidad), let number = Double(text) {
-            cantidad = number
-        } else {
-            cantidad = 0
+
+        func decodeNum(_ key: CodingKeys) -> Double {
+            if let number = try? values.decode(Double.self, forKey: key) { return number }
+            if let text = try? values.decode(String.self, forKey: key), let number = Double(text) { return number }
+            return 0
         }
+
+        cantidad = decodeNum(.cantidad)
+        let rawUnitPrice = decodeNum(.precioUnitario)
+        precioUnitario = rawUnitPrice > 0 ? rawUnitPrice : (producto?.precioVenta ?? 0)
+
+        let rawSubtotal = decodeNum(.subtotal)
+        subtotal = rawSubtotal > 0 ? rawSubtotal : (cantidad * precioUnitario)
     }
 }
 
 struct ProductoFiadoAPI: Decodable {
+    let id: String?
     let nombre: String
+    let precioVenta: Double?
+    let unidadMedida: String?
+    let tipoVenta: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, nombre, precioVenta, unidadMedida, tipoVenta
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        if let str = try? values.decode(String.self, forKey: .id) {
+            id = str
+        } else if let intId = try? values.decode(Int.self, forKey: .id) {
+            id = String(intId)
+        } else {
+            id = nil
+        }
+        nombre = (try? values.decode(String.self, forKey: .nombre)) ?? "Producto"
+        unidadMedida = try? values.decodeIfPresent(String.self, forKey: .unidadMedida)
+        tipoVenta = try? values.decodeIfPresent(String.self, forKey: .tipoVenta)
+
+        if let val = try? values.decode(Double.self, forKey: .precioVenta) {
+            precioVenta = val
+        } else if let str = try? values.decode(String.self, forKey: .precioVenta), let val = Double(str) {
+            precioVenta = val
+        } else {
+            precioVenta = nil
+        }
+    }
 }
 
 struct FiadoAPI: Decodable, Identifiable {

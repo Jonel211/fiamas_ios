@@ -3,6 +3,7 @@ import SwiftUI
 /// Un fiado dentro de la tarjeta de su tienda.
 struct CreditCardView: View {
     let credit: Credit
+    var showChevron: Bool = false
 
     private var footnoteColor: Color {
         credit.status == .overdue ? .fiDanger : .fiTextSecondary
@@ -10,7 +11,7 @@ struct CreditCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(credit.amount)
                     .font(.poppins(20, .semibold))
                     .foregroundStyle(Color.fiTextPrimary)
@@ -21,6 +22,11 @@ struct CreditCardView: View {
                 case .partial: StatusBadge(text: "Pago parcial", foreground: .fiWarning, background: .fiWarningSoft)
                 case .paid: StatusBadge(text: "Pagado")
                 case .cancelled: StatusBadge(text: "Cancelado", foreground: .fiTextSecondary, background: .fiDivider)
+                }
+                if showChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.fiTextTertiary)
                 }
             }
 
@@ -49,5 +55,6 @@ struct CreditCardView: View {
             .padding(.top, 2)
         }
         .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }

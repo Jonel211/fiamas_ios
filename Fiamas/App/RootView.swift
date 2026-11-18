@@ -37,6 +37,7 @@ struct RootView: View {
             case .newPassword: NewPasswordView()
             case .menu: MenuView()
             case .notifications: NotificationsView()
+            case .creditDetail(let credit): CreditDetailView(credit: credit)
             case .paymentDetail(let payment): PaymentDetailView(payment: payment)
             case .changePassword: ChangePasswordView()
             case .editProfile: EditProfileView()
