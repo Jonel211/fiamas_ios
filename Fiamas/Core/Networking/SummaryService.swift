@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct ClientSummaryResponse: Decodable {
     let resumenGlobal: ResumenGlobal
@@ -67,12 +68,23 @@ private extension KeyedDecodingContainer {
 
 class SummaryService {
     static let shared = SummaryService()
+    private let logger = Logger(subsystem: "com.fiamas", category: "Refresh")
     private init() {}
 
     func fetchMySummary() async throws -> (score: Int?, category: String, totalOwed: Double, stores: [StoreSummary]) {
-        let response: ClientSummaryResponse = try await APIClient.shared.request(
-            endpoint: "/app-cliente/mi-resumen", cachePolicy: .reloadIgnoringLocalCacheData
-        )
+        let response: ClientSummaryResponse
+        do {
+            response = try await APIClient.shared.request(
+                endpoint: "/app-cliente/mi-resumen", cachePolicy: .reloadIgnoringLocalCacheData
+            )
+        } catch {
+            if (error as? URLError)?.code == .cancelled || error is CancellationError {
+                logger.debug("SummaryService: cancelled")
+            } else {
+                logger.error("SummaryService: \(String(describing: error), privacy: .public)")
+            }
+            throw error
+        }
         let scores = response.detallePorTienda.compactMap(\.scorePagador)
         let score = scores.isEmpty ? nil : scores.reduce(0, +) / scores.count
         let category: String

@@ -44,10 +44,7 @@ final class AppRouter {
     }
 
     func logout() {
-<<<<<<< HEAD
-=======
         mainPaths = [:]
->>>>>>> f7f7350 (fix(nav): persistir vistas sin recargar)
         authPath = [] // Se deja en blanco para cargar el WelcomeView con su diseño completo
         phase = .auth
     }
