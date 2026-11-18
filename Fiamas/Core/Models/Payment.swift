@@ -48,7 +48,7 @@ struct Payment: Identifiable, Hashable {
 
 /// Pagos agrupados por fecha (ej. "Hoy", "06 de sep 2026").
 struct PaymentGroup: Identifiable {
-    let id = UUID()
+    var id: String { "\(month)|\(title)" }
     let title: String
     var month: String
     let payments: [Payment]

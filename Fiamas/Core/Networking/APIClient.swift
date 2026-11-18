@@ -34,14 +34,15 @@ class APIClient {
         method: String = "GET",
         body: Data? = nil,
         requiresAuth: Bool = true,
-        retryOnUnauthorized: Bool = true
+        retryOnUnauthorized: Bool = true,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
     ) async throws -> T {
         
         guard let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw APIError.invalidURL
         }
         
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -63,7 +64,7 @@ class APIClient {
             if httpResponse.statusCode == 401, requiresAuth, retryOnUnauthorized,
                await AuthService.shared.refreshSession() {
                 return try await self.request(endpoint: endpoint, method: method, body: body,
-                                              requiresAuth: true, retryOnUnauthorized: false)
+                                               requiresAuth: true, retryOnUnauthorized: false, cachePolicy: cachePolicy)
             }
             if httpResponse.statusCode == 429 {
                 throw APIError.serverError("Demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.")
