@@ -4,7 +4,7 @@ struct Payment: Identifiable, Hashable {
     let id: String
     let store: String
     var concept: String
-    var products: [String] // <--- NUEVO: Lista de productos individuales
+    var products: [String]
     var amount: String
     var amountValue: Double
     var time: String
@@ -19,7 +19,7 @@ struct Payment: Identifiable, Hashable {
         id: String = UUID().uuidString,
         store: String,
         concept: String = "Abono Víveres",
-        products: [String] = [], // <--- NUEVO
+        products: [String] = [], 
         amount: String = "S/ 50.00",
         amountValue: Double = 50.0,
         time: String = "4:15 pm",
