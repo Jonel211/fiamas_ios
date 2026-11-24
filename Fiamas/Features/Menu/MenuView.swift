@@ -109,9 +109,10 @@ struct MenuView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isShowingShareSheet) {
             ShareFiamasSheet()
+                .preferredColorScheme(.light)
                 .presentationDetents([.height(260)])
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Color(uiColor: .systemBackground))
+                .presentationBackground(.white)
                 .presentationCornerRadius(24)
         }
         .confirmationDialog("¿Quieres cerrar sesión?", isPresented: $isConfirmingLogout, titleVisibility: .visible) {
@@ -191,8 +192,8 @@ private struct ShareFiamasSheet: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color(uiColor: .secondarySystemBackground)))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(uiColor: .separator).opacity(0.5), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiTealSoft.opacity(0.45)))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.fiBorder, lineWidth: 1))
         }
         .padding(.horizontal, 20)
         .padding(.top, 32)

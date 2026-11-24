@@ -6,10 +6,14 @@ final class AppRouter {
 
     var phase: Phase = .splash
     var authPath: [Route] = []
-    var mainPath: [Route] = []
-    
-    // Agregamos esto para controlar la pestaña activa globalmente
+    var mainPaths: [MainTab: [Route]] = [:]
+    var initialTab: MainTab = .home
     var activeTab: MainTab = .home
+
+    var mainPath: [Route] {
+        get { mainPaths[activeTab] ?? [] }
+        set { mainPaths[activeTab] = newValue }
+    }
 
     init() {
         #if DEBUG
@@ -34,17 +38,19 @@ final class AppRouter {
     }
 
     func enterApp() {
-        mainPath = []
+        mainPaths = [:]
+        activeTab = initialTab
         phase = .main
         activeTab = .home // Reiniciamos a home al entrar
     }
 
     func logout() {
-        authPath = []
+        mainPaths = [:]
+        authPath = [] // Se deja en blanco para cargar el WelcomeView con su diseño completo
         phase = .auth
     }
     
-    // NUEVA FUNCIÓN: Cierra el menú y va al perfil
+    // Cierra el menú y va al perfil
     func goToProfileTab() {
         popToRoot() // Esto cierra el menú u otras ventanas encima
         activeTab = .profile // Cambia la pestaña inferior a Perfil

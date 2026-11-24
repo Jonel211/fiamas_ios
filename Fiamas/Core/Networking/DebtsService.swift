@@ -214,7 +214,9 @@ class DebtsService {
     private init() {}
 
     func fetchMyDebts() async throws -> [FiadoAPI] {
-        let response: FiadosResponse = try await APIClient.shared.request(endpoint: "/app-cliente/mis-fiados")
+        let response: FiadosResponse = try await APIClient.shared.request(
+            endpoint: "/app-cliente/mis-fiados", cachePolicy: .reloadIgnoringLocalCacheData
+        )
         return response.fiados
     }
 }

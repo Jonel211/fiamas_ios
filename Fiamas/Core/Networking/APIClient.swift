@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 // 1. Definición de errores de red
 enum APIError: LocalizedError {
@@ -6,6 +7,7 @@ enum APIError: LocalizedError {
     case invalidResponse
     case decodingError
     case serverError(String)
+    case httpError(status: Int, message: String)
     
     var errorDescription: String? {
         switch self {
@@ -17,6 +19,8 @@ enum APIError: LocalizedError {
             return "Hubo un problema al leer los datos del servidor."
         case .serverError(let message):
             return message
+        case .httpError(_, let message):
+            return message
         }
     }
 }
@@ -25,6 +29,7 @@ enum APIError: LocalizedError {
 class APIClient {
     static let shared = APIClient()
     private let baseURL = "https://fiamas-tiendas.onrender.com/api"
+    private let logger = Logger(subsystem: "com.fiamas", category: "Refresh")
     
     private init() {}
     
@@ -34,14 +39,15 @@ class APIClient {
         method: String = "GET",
         body: Data? = nil,
         requiresAuth: Bool = true,
-        retryOnUnauthorized: Bool = true
+        retryOnUnauthorized: Bool = true,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
     ) async throws -> T {
         
         guard let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw APIError.invalidURL
         }
         
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -53,26 +59,38 @@ class APIClient {
             request.httpBody = body
         }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            if (error as? URLError)?.code == .cancelled {
+                logger.debug("GET \(endpoint, privacy: .public): cancelled")
+            } else {
+                logger.error("GET \(endpoint, privacy: .public): transport \(String(describing: error), privacy: .public)")
+            }
+            throw error
+        }
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
+            logger.error("GET \(endpoint, privacy: .public): HTTP \(httpResponse.statusCode)")
             if httpResponse.statusCode == 401, requiresAuth, retryOnUnauthorized,
                await AuthService.shared.refreshSession() {
                 return try await self.request(endpoint: endpoint, method: method, body: body,
-                                              requiresAuth: true, retryOnUnauthorized: false)
+                                               requiresAuth: true, retryOnUnauthorized: false, cachePolicy: cachePolicy)
             }
             if httpResponse.statusCode == 429 {
-                throw APIError.serverError("Demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.")
+                throw APIError.httpError(status: 429, message: "Demasiadas solicitudes. Espera un minuto y vuelve a intentarlo.")
             }
             if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMessage = errorDict["error"] as? String {
-                throw APIError.serverError(errorMessage)
+                let errorMessage = errorDict["error"] as? String {
+                throw APIError.httpError(status: httpResponse.statusCode, message: errorMessage)
             }
-            throw APIError.serverError("Error del servidor: \(httpResponse.statusCode)")
+            throw APIError.httpError(status: httpResponse.statusCode, message: "Error del servidor: \(httpResponse.statusCode)")
         }
         
         do {
@@ -80,7 +98,7 @@ class APIClient {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             return try decoder.decode(T.self, from: data)
         } catch {
-            print("Error decodificando JSON: \(error)")
+            logger.error("GET \(endpoint, privacy: .public): decoding \(String(describing: error), privacy: .public)")
             throw APIError.decodingError
         }
     }
