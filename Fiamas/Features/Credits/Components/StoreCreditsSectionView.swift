@@ -13,15 +13,15 @@ struct StoreCreditsSectionView: View {
             Button(action: toggle) {
                 HStack(spacing: 12) {
                     
-                    // --- NUEVO: Foto de la tienda ---
-                    if let imagenUrl = store.imagenUrl, let url = URL(string: imagenUrl) {
+                    // Foto de la tienda
+                    if let imagenUrl = store.imagenUrl, !imagenUrl.isEmpty, let url = URL(string: imagenUrl) {
                         AsyncImage(url: url) { phase in
                             if let image = phase.image {
                                 image
                                     .resizable()
                                     .scaledToFill()
                                     .frame(width: 44, height: 44)
-                                    .clipShape(Circle())
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             } else if phase.error != nil {
                                 IconTile(systemName: "storefront", size: 44)
                             } else {
@@ -32,7 +32,6 @@ struct StoreCreditsSectionView: View {
                     } else {
                         IconTile(systemName: "storefront", size: 44)
                     }
-                    // ---------------------------------
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(store.name)

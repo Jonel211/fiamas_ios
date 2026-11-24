@@ -10,14 +10,13 @@ struct FiadosResponse: Decodable {
 struct TiendaInfo: Decodable {
     let id: String
     let nombre: String
-    let imagenUrl: String? // <-- NUEVA PROPIEDAD AGREGADA
+    let imagenUrl: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, nombre
-        case imagenUrl = "imagen_url" // <-- MAPEO A LA COLUMNA DE TU BASE DE DATOS
+        case id, nombre, imagenUrl
     }
 
-    init(id: String, nombre: String, imagenUrl: String? = nil) { // <-- PARÁMETRO NUEVO
+    init(id: String, nombre: String, imagenUrl: String? = nil) {
         self.id = id
         self.nombre = nombre
         self.imagenUrl = imagenUrl
@@ -36,9 +35,13 @@ struct TiendaInfo: Decodable {
             )
         }
         nombre = (try? container.decode(String.self, forKey: .nombre)) ?? "Tienda"
-        
-        // Leer la imagen_url de la base de datos
-        imagenUrl = try? container.decodeIfPresent(String.self, forKey: .imagenUrl)
+
+        if let rawUrl = try? container.decodeIfPresent(String.self, forKey: .imagenUrl) {
+            let trimmed = rawUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+            imagenUrl = trimmed.isEmpty ? nil : trimmed
+        } else {
+            imagenUrl = nil
+        }
     }
 }
 
