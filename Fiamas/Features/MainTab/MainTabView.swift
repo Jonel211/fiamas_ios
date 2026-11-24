@@ -46,7 +46,16 @@ struct MainTabView: View {
                 try? await Task.sleep(for: RefreshPolicy.pollingInterval)
             }
         }
-        .onChange(of: tab) { _, newTab in router.activeTab = newTab }
+        .onChange(of: tab) { _, newTab in
+            if router.activeTab != newTab {
+                router.activeTab = newTab
+            }
+        }
+        .onChange(of: router.activeTab) { _, newActiveTab in
+            if tab != newActiveTab {
+                tab = newActiveTab
+            }
+        }
         .onAppear {
             guard !didSetInitialTab else { return }
             didSetInitialTab = true
