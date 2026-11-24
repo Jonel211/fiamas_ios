@@ -20,7 +20,8 @@ struct CreditsView: View {
                 description: "\(fiados.count) fiados registrados",
                 date: "",
                 used: summary.saldoActual,
-                limit: summary.limiteCredito
+                limit: summary.limiteCredito,
+                imagenUrl: summary.tienda.imagenUrl ?? fiados.first?.tienda?.imagenUrl
             )
             let credits = fiados.map { f in
                 let items = f.detalles.compactMap { detalle in

@@ -16,7 +16,8 @@ struct ChangePasswordView: View {
 
     // Habilita guardar solo cuando los 3 campos tienen exactamente 6 caracteres y coinciden
     private var canSave: Bool {
-        current.count == 6 && newPin.count == 6 && confirmPin.count == 6 && newPin == confirmPin && !isLoading
+        PasswordRules.isValid(current) && PasswordRules.isValid(newPin)
+            && PasswordRules.isValid(confirmPin) && newPin == confirmPin && !isLoading
     }
 
     var body: some View {
@@ -43,8 +44,8 @@ struct ChangePasswordView: View {
                         FiTextField(label: "Contraseña / PIN actual", text: $current, placeholder: "Tu contraseña actual",
                                     icon: "lock", isSecure: true, contentType: .password)
                             .onChange(of: current) { _, newValue in
-                                if newValue.count > 6 {
-                                    current = String(newValue.prefix(6))
+                                if newValue.count > PasswordRules.maxLength {
+                                    current = PasswordRules.limit(newValue)
                                 }
                             }
 
@@ -53,14 +54,14 @@ struct ChangePasswordView: View {
                             FiTextField(label: "Nueva contraseña / PIN", text: $newPin, placeholder: "6 caracteres",
                                         icon: "key", isSecure: true, contentType: .newPassword)
                                 .onChange(of: newPin) { _, newValue in
-                                    if newValue.count > 6 {
-                                        newPin = String(newValue.prefix(6))
+                                    if newValue.count > PasswordRules.maxLength {
+                                        newPin = PasswordRules.limit(newValue)
                                     }
                                 }
 
                             Text("Debe tener exactamente 6 caracteres.")
                                 .font(.poppins(12))
-                                .foregroundStyle(newPin.isEmpty || newPin.count == 6 ? Color.fiTextTertiary : Color.fiWarning)
+                                .foregroundStyle(newPin.isEmpty || PasswordRules.isValid(newPin) ? Color.fiTextTertiary : Color.fiWarning)
                         }
 
                         // 3. Confirmar contraseña / PIN (Acepta cualquier carácter, máx 6)
@@ -68,8 +69,8 @@ struct ChangePasswordView: View {
                             FiTextField(label: "Confirmar contraseña / PIN", text: $confirmPin, placeholder: "Repite la nueva contraseña",
                                         icon: "key", isSecure: true, contentType: .newPassword)
                                 .onChange(of: confirmPin) { _, newValue in
-                                    if newValue.count > 6 {
-                                        confirmPin = String(newValue.prefix(6))
+                                    if newValue.count > PasswordRules.maxLength {
+                                        confirmPin = PasswordRules.limit(newValue)
                                     }
                                 }
 

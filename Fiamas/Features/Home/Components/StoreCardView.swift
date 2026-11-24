@@ -7,27 +7,25 @@ struct StoreCardView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 
-                // --- NUEVO: Foto de la tienda ---
-                if let imagenUrl = store.imagenUrl, let url = URL(string: imagenUrl) {
+                // Foto de la tienda
+                if let imagenUrl = store.imagenUrl, !imagenUrl.isEmpty, let url = URL(string: imagenUrl) {
                     AsyncImage(url: url) { phase in
                         if let image = phase.image {
                             image
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 44, height: 44)
-                                .clipShape(Circle())
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         } else if phase.error != nil {
-                            IconTile(systemName: "storefront", size: 44) // Si la URL falla
+                            IconTile(systemName: "storefront", size: 44)
                         } else {
                             ProgressView()
-                                .frame(width: 44, height: 44) // Mientras carga
+                                .frame(width: 44, height: 44)
                         }
                     }
                 } else {
-                    // Si no hay foto en la BD, mostramos el icono por defecto
                     IconTile(systemName: "storefront", size: 44)
                 }
-                // ---------------------------------
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.name)
