@@ -8,6 +8,7 @@ final class ProfileStore {
     private(set) var photo: UIImage?
     var isUploading: Bool = false
     var errorMessage: String? = nil
+    var successBannerMessage: String? = nil
     var score: Int?
     var category: String = "Sin historial"
 
@@ -61,10 +62,14 @@ final class ProfileStore {
         self.category = category
     }
 
-    func update(firstName: String, lastName: String, phone: String? = nil) {
+    func update(firstName: String, lastName: String, phone: String? = nil, address: String? = nil) {
         profile.firstName = firstName.trimmingCharacters(in: .whitespaces)
         profile.lastName = lastName.trimmingCharacters(in: .whitespaces)
         if let phone { profile.phone = phone }
+        if let address {
+            let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
+            profile.address = trimmed.isEmpty ? nil : trimmed
+        }
         if let data = try? JSONEncoder().encode(profile) {
             defaults.set(data, forKey: profileKey)
         }
@@ -77,7 +82,12 @@ final class ProfileStore {
             guard currentUser != "guest" else { return }
             let updated = try await ProfileService.shared.getProfile()
             guard currentUserID == currentUser, updated.id == currentUser else { return }
-            update(firstName: updated.nombres, lastName: updated.apellidos, phone: updated.telefono)
+            update(
+                firstName: updated.nombres,
+                lastName: updated.apellidos,
+                phone: updated.telefono,
+                address: updated.direccion ?? ""
+            )
         } catch {
             // Si no hay conexión, conservamos el último perfil guardado.
         }
@@ -103,6 +113,7 @@ final class ProfileStore {
         do {
             _ = try await ProfileService.shared.uploadAvatar(image: image)
             self.setPhoto(image)
+            self.successBannerMessage = "Foto de perfil actualizada"
         } catch {
             self.errorMessage = error.localizedDescription
         }

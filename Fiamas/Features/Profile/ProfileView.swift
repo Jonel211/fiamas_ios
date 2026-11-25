@@ -24,13 +24,20 @@ struct ProfileView: View {
                     GroupLabel(title: "Información personal")
                         .padding(.bottom, 8)
                     VStack(spacing: 0) {
-                        // Icono nativo con relleno para Nombres
                         row(icon: "person.fill", title: "Nombres", value: store.profile.firstName) {
                             router.push(.editProfile)
                         }
                         FiDivider(leadingInset: 64)
-                        // Icono nativo con relleno para Apellidos
                         row(icon: "person.text.rectangle.fill", title: "Apellidos", value: store.profile.lastName) {
+                            router.push(.editProfile)
+                        }
+                        FiDivider(leadingInset: 64)
+                        row(
+                            icon: "mappin.and.ellipse",
+                            title: "Dirección",
+                            value: store.profile.address ?? "Agregar dirección",
+                            isPlaceholder: store.profile.address == nil
+                        ) {
                             router.push(.editProfile)
                         }
                     }
@@ -40,7 +47,6 @@ struct ProfileView: View {
                     GroupLabel(title: "Contacto")
                         .padding(.bottom, 8)
                     HStack(spacing: 14) {
-                        // Icono nativo con relleno para Teléfono
                         IconTile(systemName: "phone.fill", size: 36)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Teléfono")
@@ -51,7 +57,6 @@ struct ProfileView: View {
                                 .foregroundStyle(Color.fiTextPrimary)
                         }
                         Spacer()
-                        StatusBadge(text: "Verificado", icon: "checkmark")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
@@ -63,6 +68,33 @@ struct ProfileView: View {
             }
         }
         .fiScreenBackground()
+        .overlay(alignment: .bottom) {
+            if let message = store.successBannerMessage {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .font(.poppins(14, .semibold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(Capsule().fill(Color.fiTealDark))
+                .shadow(color: .black.opacity(0.15), radius: 5, y: 4)
+                .padding(.bottom, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .task(id: message) {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    if !Task.isCancelled {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            store.successBannerMessage = nil
+                        }
+                    }
+                }
+            }
+        }
+        .animation(.spring(duration: 0.3), value: store.successBannerMessage)
         .photoSourcePicker(
             isPresented: $isChoosingPhoto,
             canRemove: store.photo != nil,
@@ -128,30 +160,37 @@ struct ProfileView: View {
         )
     }
 
-    private func row(icon: String, title: String, value: String?, action: @escaping () -> Void) -> some View {
-            Button(action: action) {
-                HStack(spacing: 14) {
-                    // Corregido: removiendo 'style: .flat' que causaba el error de compilación
-                    IconTile(systemName: icon, size: 36)
-                    Text(title)
-                        .font(.poppins(15, value == nil ? .medium : .regular))
-                        .foregroundStyle(value == nil ? Color.fiTextPrimary : Color.fiTextSecondary)
-                    Spacer()
-                    if let value {
-                        Text(value)
-                            .font(.poppins(15, .semibold))
-                            .foregroundStyle(Color.fiTextPrimary)
-                    }
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.fiTextTertiary)
+    private func row(
+        icon: String,
+        title: String,
+        value: String?,
+        isPlaceholder: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                IconTile(systemName: icon, size: 36)
+                Text(title)
+                    .font(.poppins(15, value == nil ? .medium : .regular))
+                    .foregroundStyle(value == nil ? Color.fiTextPrimary : Color.fiTextSecondary)
+                Spacer(minLength: 12)
+                if let value {
+                    Text(value)
+                        .font(.poppins(15, isPlaceholder ? .regular : .semibold))
+                        .foregroundStyle(isPlaceholder ? Color.fiTextTertiary : Color.fiTextPrimary)
+                        .lineLimit(1)
+                        .multilineTextAlignment(.trailing)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.fiTextTertiary)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+    }
 }
 
 #Preview {

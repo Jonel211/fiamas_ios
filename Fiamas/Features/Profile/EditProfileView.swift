@@ -7,6 +7,7 @@ struct EditProfileView: View {
 
     @State private var firstName = ""
     @State private var lastName = ""
+    @State private var address = ""
     @State private var photo: UIImage?
     @State private var didChangePhoto = false
     @State private var isChoosingPhoto = false
@@ -29,6 +30,7 @@ struct EditProfileView: View {
         didChangePhoto
             || firstName.trimmingCharacters(in: .whitespacesAndNewlines) != store.profile.firstName
             || lastName.trimmingCharacters(in: .whitespacesAndNewlines) != store.profile.lastName
+            || address.trimmingCharacters(in: .whitespacesAndNewlines) != (store.profile.address ?? "")
     }
 
     var body: some View {
@@ -54,6 +56,8 @@ struct EditProfileView: View {
                                     icon: "person", contentType: .givenName, capitalization: .words)
                         FiTextField(label: "Apellidos", text: $lastName, placeholder: "Tus apellidos",
                                     icon: "person.text.rectangle", contentType: .familyName, capitalization: .words)
+                        FiTextField(label: "Dirección", text: $address, placeholder: "Tu dirección (ej. Av. España 123)",
+                                    icon: "mappin.and.ellipse", contentType: .fullStreetAddress, capitalization: .sentences)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Teléfono")
@@ -129,6 +133,7 @@ struct EditProfileView: View {
             didLoad = true
             firstName = store.profile.firstName
             lastName = store.profile.lastName
+            address = store.profile.address ?? ""
             photo = store.photo
         }
     }
@@ -139,23 +144,30 @@ struct EditProfileView: View {
         errorMessage = nil
         
         do {
-            // Guardamos los nombres y apellidos en el perfil del usuario autenticado.
+            let trimmedAddress = address.trimmingCharacters(in: .whitespacesAndNewlines)
             let updated = try await ProfileService.shared.updateProfile(
                 nombres: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
-                apellidos: lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+                apellidos: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
+                direccion: trimmedAddress
             )
             
-            // 2. Actualizamos el Store local con los datos reales que confirmó el servidor
-            store.update(firstName: updated.nombres, lastName: updated.apellidos)
+            store.update(
+                firstName: updated.nombres,
+                lastName: updated.apellidos,
+                address: updated.direccion ?? ""
+            )
             
             if didChangePhoto {
-                store.setPhoto(photo) // La foto aún no tiene endpoint, se guarda local
+                if let photo {
+                    await store.uploadPhotoToBackend(photo)
+                } else {
+                    store.setPhoto(nil)
+                }
             }
             
-            // 3. Cerramos la pantalla y volvemos al perfil
+            store.successBannerMessage = "Datos actualizados con éxito"
             router.pop()
         } catch {
-            // 4. Si el servidor falla, mostramos el error en rojo
             errorMessage = error.localizedDescription
         }
         

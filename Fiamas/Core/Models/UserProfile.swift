@@ -4,6 +4,7 @@ struct UserProfile: Codable, Equatable {
     var firstName: String
     var lastName: String
     var phone: String
+    var address: String? = nil
 
     var fullName: String {
         "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
