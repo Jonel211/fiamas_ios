@@ -9,16 +9,23 @@ final class NotificationsBadgeStore {
 
     var unreadCount: Int = 0
 
-    private var userKey: String {
-        UserDefaults.standard.string(forKey: "user_id") ?? "guest"
+    nonisolated static var currentUserKey: String {
+        let raw = UserDefaults.standard.string(forKey: "user_id")?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (raw?.isEmpty == false) ? raw! : "guest"
     }
 
-    private var readKey: String {
+    nonisolated static func readKey(for userKey: String = currentUserKey) -> String {
         "readReminders_\(userKey)"
     }
 
-    private var deletedKey: String {
+    nonisolated static func deletedKey(for userKey: String = currentUserKey) -> String {
         "deletedReminders_\(userKey)"
+    }
+
+    static func notificationID(for fiado: FiadoAPI, daysUntilDue: Int) -> String {
+        let due = fiado.fechaVencimiento ?? ""
+        let bucket = daysUntilDue < 0 ? "mora" : "upcoming"
+        return "\(fiado.id)-\(due)-\(bucket)"
     }
 
     func refresh() async {
@@ -31,12 +38,12 @@ final class NotificationsBadgeStore {
     }
 
     func update(from fiados: [FiadoAPI]) {
-        let read = Set(UserDefaults.standard.stringArray(forKey: readKey) ?? [])
-        let deleted = Set(UserDefaults.standard.stringArray(forKey: deletedKey) ?? [])
+        let read = Set(UserDefaults.standard.stringArray(forKey: Self.readKey()) ?? [])
+        let deleted = Set(UserDefaults.standard.stringArray(forKey: Self.deletedKey()) ?? [])
 
         let activeUnread = fiados.compactMap { fiado -> String? in
             guard let days = fiado.daysUntilDue, days <= 2 else { return nil }
-            let id = "\(fiado.id)-\(fiado.fechaVencimiento ?? "")-\(days < 0 ? "mora" : String(days))"
+            let id = Self.notificationID(for: fiado, daysUntilDue: days)
             guard !deleted.contains(id), !read.contains(id) else { return nil }
             return id
         }

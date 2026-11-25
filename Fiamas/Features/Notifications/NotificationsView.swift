@@ -11,9 +11,8 @@ struct NotificationsView: View {
     @State private var errorMessage: String?
     @State private var isConfirmingDelete = false
 
-    private var userKey: String { UserDefaults.standard.string(forKey: "user_id") ?? "guest" }
-    private var readKey: String { "readReminders_\(userKey)" }
-    private var deletedKey: String { "deletedReminders_\(userKey)" }
+    private var readKey: String { NotificationsBadgeStore.readKey() }
+    private var deletedKey: String { NotificationsBadgeStore.deletedKey() }
 
     private var unreadCount: Int {
         groups.flatMap(\.items).filter(\.unread).count
@@ -156,7 +155,7 @@ struct NotificationsView: View {
             let deleted = Set(UserDefaults.standard.stringArray(forKey: deletedKey) ?? [])
             let items: [AppNotification] = fiados.compactMap { fiado in
                 guard let days = fiado.daysUntilDue, days <= 2 else { return nil }
-                let id = "\(fiado.id)-\(fiado.fechaVencimiento ?? "")-\(days < 0 ? "mora" : String(days))"
+                let id = NotificationsBadgeStore.notificationID(for: fiado, daysUntilDue: days)
                 guard !deleted.contains(id) else { return nil }
                 let title = days < 0 ? "Pago vencido" : days == 0 ? "Tu fiado vence hoy"
                     : days == 1 ? "Tu fiado vence mañana" : "Tu fiado vence en 2 días"
