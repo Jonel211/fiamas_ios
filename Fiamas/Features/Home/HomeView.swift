@@ -6,6 +6,8 @@ struct HomeView: View {
     @Environment(ProfileStore.self) private var profileStore
     @Environment(DebtsStore.self) private var debtsStore
 
+    private var badgeStore: NotificationsBadgeStore { .shared }
+
     @State private var isShowingScanner = false
 
     private var mappedStores: [Store] {
@@ -27,10 +29,9 @@ struct HomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header limpio (sin el icono QR en la barra superior)
-            // Header limpio (sin el icono QR en la barra superior)
             FiHeader(
                 title: "Bienvenido",
-                trailingBadge: debtsStore.fiadosAPI.contains { $0.daysUntilDue.map { $0 <= 2 } ?? false },
+                badgeCount: badgeStore.unreadCount,
                 onLeading: { router.push(.menu) },
                 onTrailing: { router.push(.notifications) }
             )
@@ -148,13 +149,22 @@ struct HomeView: View {
             }
             .refreshable {
                 await debtsStore.refresh(profileStore: profileStore, manually: true)
+                await badgeStore.refresh()
             }
         }
         .fiScreenBackground()
+        .task {
+            badgeStore.update(from: debtsStore.fiadosAPI)
+            await badgeStore.refresh()
+        }
+        .onChange(of: debtsStore.fiadosAPI.count) { _, _ in
+            badgeStore.update(from: debtsStore.fiadosAPI)
+        }
         .fullScreenCover(isPresented: $isShowingScanner) {
             LinkStoreScannerSheet { _ in
                 Task {
                     await debtsStore.refresh(profileStore: profileStore)
+                    await badgeStore.refresh()
                 }
             }
         }
@@ -211,7 +221,7 @@ private struct TotalOwedCard: View {
                         .frame(width: 130, height: 115)
                         .scaleEffect(1.30)
                         .offset(x: 10, y: 0)
-                    
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Total debiendo")
                             .font(.poppins(18, .medium))
@@ -240,15 +250,13 @@ private struct TotalOwedCard: View {
                         .fill(.white.opacity(0.35))
                         .frame(width: 1, height: 22)
 
-                    // --- CAMBIO: Texto negro en el Badge Naranja ---
                     StatusBadge(
                         text: category,
                         icon: (score ?? 0) >= 90 ? "sparkles" : (score == nil ? "clock" : "exclamationmark.triangle.fill"),
-                        foreground: .black, // <-- Texto negro
-                        background: .fiOrange // Fondo naranja
+                        foreground: .black,
+                        background: .fiOrange
                     )
                     .fixedSize(horizontal: true, vertical: false)
-                    // ------------------------------------------------
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
