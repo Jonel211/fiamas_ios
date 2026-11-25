@@ -179,15 +179,8 @@ struct LinkStoreScannerSheet: View {
                 } else if let store = storeInfo, let token = validToken {
                     // Información válida de la Tienda
                     HStack(spacing: 14) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.fiTealSoft)
-                                .frame(width: 52, height: 52)
-                            Image(systemName: "storefront.fill")
-                                .font(.system(size: 24))
-                                .foregroundStyle(Color.fiTeal)
-                        }
-
+                        storeAvatar(urlString: store.imagenUrl)
+                        
                         VStack(alignment: .leading, spacing: 3) {
                             Text(store.nombre)
                                 .font(.poppins(17, .semibold))
@@ -298,6 +291,45 @@ struct LinkStoreScannerSheet: View {
                     .background(Capsule().fill(.white))
             }
             .padding(.top, 8)
+        }
+    }
+    
+    // MARK: - Avatar de Tienda
+    @ViewBuilder
+    private func storeAvatar(urlString: String?) -> some View {
+        if let urlString, !urlString.isEmpty, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 52, height: 52)
+                        .clipShape(Circle())
+                } else if phase.error != nil {
+                    defaultStoreIcon
+                } else {
+                    ZStack {
+                        Circle()
+                            .fill(Color.fiTealSoft)
+                            .frame(width: 52, height: 52)
+                        ProgressView()
+                            .tint(Color.fiTeal)
+                    }
+                }
+            }
+        } else {
+            defaultStoreIcon
+        }
+    }
+
+    private var defaultStoreIcon: some View {
+        ZStack {
+            Circle()
+                .fill(Color.fiTealSoft)
+                .frame(width: 52, height: 52)
+            Image(systemName: "storefront.fill")
+                .font(.system(size: 24))
+                .foregroundStyle(Color.fiTeal)
         }
     }
 
