@@ -16,6 +16,7 @@ struct LinkStoreScannerSheet: View {
     @State private var errorMessage: String? = nil
     @State private var cameraPermission: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var laserOffset: CGFloat = -110
+    @State private var scanResetTrigger = 0
 
     var body: some View {
         ZStack {
@@ -26,6 +27,7 @@ struct LinkStoreScannerSheet: View {
             } else {
                 QRScannerView(
                     torchIsOn: torchIsOn,
+                    resetTrigger: scanResetTrigger,
                     onCodeScanned: { code in
                         handleScannedCode(code)
                     },
@@ -36,7 +38,9 @@ struct LinkStoreScannerSheet: View {
                 )
                 .ignoresSafeArea()
 
+                #if !targetEnvironment(simulator)
                 scannerOverlay
+                #endif
             }
 
             VStack {
@@ -421,6 +425,7 @@ struct LinkStoreScannerSheet: View {
             linkSuccessMessage = nil
             errorMessage = nil
         }
+        scanResetTrigger += 1
         laserOffset = -110
         DispatchQueue.main.async {
             startLaserAnimation()

@@ -5,6 +5,7 @@ import UIKit
 /// Vista representable de UIKit que encapsula AVCaptureSession para escanear códigos QR y barras.
 struct QRScannerView: UIViewControllerRepresentable {
     var torchIsOn: Bool
+    var resetTrigger: Int = 0
     var onCodeScanned: (String) -> Void
     var onError: ((String) -> Void)?
 
@@ -17,6 +18,10 @@ struct QRScannerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: QRScannerViewController, context: Context) {
         context.coordinator.parent = self
         uiViewController.setTorch(on: torchIsOn)
+        if context.coordinator.lastResetTrigger != resetTrigger {
+            context.coordinator.lastResetTrigger = resetTrigger
+            uiViewController.resetScan()
+        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -25,6 +30,7 @@ struct QRScannerView: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, QRScannerViewControllerDelegate {
         var parent: QRScannerView
+        var lastResetTrigger: Int = 0
 
         init(_ parent: QRScannerView) {
             self.parent = parent
@@ -203,16 +209,22 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
 
         NSLayoutConstraint.activate([
             label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -30),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -60),
             label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
-            simulatorCodeField.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 20),
+            simulatorCodeField.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 16),
             simulatorCodeField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             simulatorCodeField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-            testButton.topAnchor.constraint(equalTo: simulatorCodeField.bottomAnchor, constant: 12),
+            simulatorCodeField.heightAnchor.constraint(equalToConstant: 44),
+
+            testButton.topAnchor.constraint(equalTo: simulatorCodeField.bottomAnchor, constant: 14),
             testButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
+    }
+    
+    func resetScan() {
+        hasFoundCode = false
     }
 
     @objc private func didTapSimulateButton() {

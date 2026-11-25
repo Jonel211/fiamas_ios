@@ -11,7 +11,7 @@ struct QRScannerSheet: View {
     @State private var cameraPermission: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     @State private var laserOffset: CGFloat = -110
     @State private var showCopiedAlert = false
-    @State private var scanAttempt = 0
+    @State private var scanResetTrigger = 0
     @State private var scanError: String?
 
     var body: some View {
@@ -24,6 +24,7 @@ struct QRScannerSheet: View {
                 // Vista de cámara
                 QRScannerView(
                     torchIsOn: torchIsOn,
+                    resetTrigger: scanResetTrigger,
                     onCodeScanned: { code in
                         handleScannedCode(code)
                     },
@@ -31,11 +32,11 @@ struct QRScannerSheet: View {
                         scanError = err
                     }
                 )
-                .id(scanAttempt)
                 .ignoresSafeArea()
 
-                // Overlay con recuadro y máscara oscura
+                #if !targetEnvironment(simulator)
                 scannerOverlay
+                #endif
             }
 
             // Barra superior de controles
@@ -51,15 +52,43 @@ struct QRScannerSheet: View {
                 scannedResultCard(code: code)
             }
 
+            // Banner temporal de error (se oculta solo tras 2.5s o al tocarlo)
             if let scanError {
-                Text(scanError)
-                    .font(.poppins(14))
+                VStack {
+                    Spacer()
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(scanError)
+                            .font(.poppins(13, .medium))
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 4)
+                        Button {
+                            withAnimation { self.scanError = nil }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                    }
                     .foregroundStyle(.white)
-                    .padding(16)
-                    .background(Color.fiDanger)
+                    .padding(14)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiDanger))
+                    .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
                     .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .task(id: scanError) {
+                    try? await Task.sleep(for: .seconds(2.5))
+                    if !Task.isCancelled {
+                        withAnimation {
+                            self.scanError = nil
+                        }
+                    }
+                }
             }
         }
+        .animation(.spring(duration: 0.3), value: scanError)
         .onAppear {
             checkCameraPermission()
             startLaserAnimation()
@@ -105,13 +134,11 @@ struct QRScannerSheet: View {
             Spacer()
 
             ZStack {
-                // Marco con bordes esquineros
                 RoundedRectangle(cornerRadius: 24)
                     .stroke(Color.fiTeal, lineWidth: 3)
                     .frame(width: 260, height: 260)
                     .background(RoundedRectangle(cornerRadius: 24).fill(Color.white.opacity(0.04)))
 
-                // Línea láser animada de escaneo
                 if scannedCode == nil {
                     Rectangle()
                         .fill(
@@ -189,7 +216,7 @@ struct QRScannerSheet: View {
                     Button {
                         scannedCode = nil
                         scanError = nil
-                        scanAttempt += 1
+                        scanResetTrigger += 1
                         startLaserAnimation()
                     } label: {
                         Text("Escanear otro código")
@@ -263,24 +290,28 @@ struct QRScannerSheet: View {
     }
 
     private func handleScannedCode(_ code: String) {
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
         let token: String
-        if let url = URLComponents(string: code), url.scheme == "https",
-           url.path == "/vincular-tienda",
+        if let url = URLComponents(string: trimmed),
            let value = url.queryItems?.first(where: { $0.name == "token" })?.value {
             token = value
         } else {
-            token = code
+            token = trimmed
         }
+
         guard UUID(uuidString: token) != nil else {
-            scanError = "Este QR no es un código de tienda de Fiamas. Intenta con otro."
-            scanAttempt += 1
+            withAnimation {
+                scanError = "Este QR no es un código de tienda de Fiamas. Intenta con otro."
+            }
+            scanResetTrigger += 1
             return
         }
-        scanError = nil
+
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            self.scannedCode = code
+            self.scanError = nil
+            self.scannedCode = trimmed
         }
-        onCodeScanned?(code)
+        onCodeScanned?(trimmed)
     }
 
     private func startLaserAnimation() {
