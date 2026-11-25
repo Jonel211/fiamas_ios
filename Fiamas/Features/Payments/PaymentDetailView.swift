@@ -1,9 +1,14 @@
 import SwiftUI
+import UIKit
 
 /// iOS-detalle-pago
 struct PaymentDetailView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(ProfileStore.self) private var profileStore
     let payment: Payment?
+
+    @State private var shareItem: ShareItem?
+    @State private var showShareError = false
 
     init(payment: Payment? = nil) {
         self.payment = payment
@@ -75,17 +80,52 @@ struct PaymentDetailView: View {
         payment?.fiadoEstado?.capitalized
     }
 
-    private var shareReceiptText: String {
-        """
-        🧾 Comprobante de Abono Fiamas
-        Tienda: \(displayStore)
-        Productos: \(displayProducts.joined(separator: ", "))
-        Monto: \(displayAmount)
-        Fecha: \(displayDate) a las \(displayTime)
-        Método: \(displayMethod)
-        \(displayReference != nil ? "Referencia: \(displayReference!)" : "")
-        Estado: Pago Registrado
-        """
+    private var receiptPayment: Payment {
+        Payment(
+            id: payment?.id ?? "",
+            store: displayStore,
+            concept: payment?.concept ?? "Abono a cuenta",
+            products: displayProducts,
+            amount: displayAmount,
+            amountValue: payment?.amountValue ?? 0,
+            time: displayTime,
+            date: displayDate,
+            method: displayMethod,
+            reference: displayReference,
+            fiadoId: payment?.fiadoId,
+            fiadoTotal: payment?.fiadoTotal,
+            fiadoEstado: payment?.fiadoEstado
+        )
+    }
+
+    @MainActor
+    private func shareReceipt() {
+        let receipt = PaymentReceiptView(
+            payment: receiptPayment,
+            customerName: profileStore.profile.fullName
+        )
+        .environment(\.colorScheme, .light)
+
+        let renderer = ImageRenderer(content: receipt)
+        renderer.scale = 3
+
+        guard let image = renderer.uiImage, let data = image.pngData() else {
+            showShareError = true
+            return
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd-HHmm"
+        let fileName = "comprobante-pago-\(formatter.string(from: Date())).png"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            try data.write(to: url, options: .atomic)
+            shareItem = ShareItem(url: url)
+        } catch {
+            showShareError = true
+        }
     }
 
     var body: some View {
@@ -135,7 +175,9 @@ struct PaymentDetailView: View {
                     summary
                         .padding(.bottom, 24)
 
-                    ShareLink(item: shareReceiptText) {
+                    Button {
+                        shareReceipt()
+                    } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 15, weight: .semibold))
@@ -148,6 +190,7 @@ struct PaymentDetailView: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.fiTealSoft))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.fiTeal.opacity(0.3), lineWidth: 1))
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -156,6 +199,14 @@ struct PaymentDetailView: View {
         }
         .fiScreenBackground()
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(item: $shareItem) { item in
+            ActivityShareSheet(items: [item.url])
+        }
+        .alert("No se pudo generar el comprobante", isPresented: $showShareError) {
+            Button("Aceptar", role: .cancel) {}
+        } message: {
+            Text("Intenta nuevamente.")
+        }
     }
 
     private var productsListRow: some View {
