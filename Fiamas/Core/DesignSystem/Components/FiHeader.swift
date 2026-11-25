@@ -9,6 +9,7 @@ struct FiHeader: View {
     var trailingIcon: String? = "bell"
     var trailingLabel: String = "Notificaciones"
     var trailingBadge: Bool = false
+    var badgeCount: Int = 0
     var secondaryTrailingIcon: String? = nil
     var secondaryTrailingLabel: String = ""
     var onLeading: () -> Void = {}
@@ -35,16 +36,7 @@ struct FiHeader: View {
                 }
 
                 if let trailingIcon {
-                    iconButton(trailingIcon, label: trailingLabel, action: onTrailing)
-                        .overlay(alignment: .topTrailing) {
-                            if trailingBadge {
-                                Circle()
-                                    .fill(Color.fiGold)
-                                    .frame(width: 9, height: 9)
-                                    .overlay(Circle().stroke(Color.fiTeal, lineWidth: 2))
-                                    .offset(x: -9, y: 10)
-                            }
-                        }
+                    trailingButtonWithBadge(systemName: trailingIcon, label: trailingLabel, action: onTrailing)
                 } else if secondaryTrailingIcon == nil {
                     Color.clear.frame(width: 44, height: 44)
                 }
@@ -66,6 +58,37 @@ struct FiHeader: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .preferredColorScheme(.dark)
+    }
+
+    private func trailingButtonWithBadge(systemName: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: systemName)
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                if badgeCount > 0 {
+                    Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
+                        .font(.poppins(10, .bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, badgeCount > 9 ? 4 : 3)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .background(Color.fiGold, in: Capsule())
+                        .overlay(Capsule().stroke(Color.fiTeal, lineWidth: 1.5))
+                        .offset(x: 6, y: -5)
+                } else if trailingBadge {
+                    Circle()
+                        .fill(Color.fiGold)
+                        .frame(width: 9, height: 9)
+                        .overlay(Circle().stroke(Color.fiTeal, lineWidth: 1.5))
+                        .offset(x: 3, y: -2)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     private func iconButton(_ systemName: String, label: String, action: @escaping () -> Void) -> some View {
